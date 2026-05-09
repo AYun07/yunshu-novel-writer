@@ -14,6 +14,7 @@ import ShortStory from '../views/ShortStory.vue'
 import BookAnalysis from '../views/BookAnalysis.vue'
 import MasterCreation from '../views/MasterCreation.vue'
 import StyleImitation from '../views/StyleImitation.vue'
+import NovelWorkshop from '../views/NovelWorkshop.vue'
 
 const routes = [
   {
@@ -89,6 +90,11 @@ const routes = [
         path: 'imitation',
         name: 'StyleImitation',
         component: StyleImitation
+      },
+      {
+        path: 'workshop',
+        name: 'NovelWorkshop',
+        component: NovelWorkshop
       }
     ]
   }

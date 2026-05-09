@@ -29,6 +29,11 @@
           <template #title>风格仿写</template>
         </el-menu-item>
         
+        <el-menu-item index="/workshop">
+          <el-icon><Notebook /></el-icon>
+          <template #title>长篇工坊</template>
+        </el-menu-item>
+        
         <el-menu-item index="/novels">
           <el-icon><Document /></el-icon>
           <template #title>小说列表</template>
@@ -223,6 +228,7 @@ const pageTitle = computed(() => {
     '/': '首页',
     '/master': '大师创作',
     '/imitation': '风格仿写',
+    '/workshop': '长篇工坊',
     '/novels': '小说列表',
     '/prompts': '提示词库',
     '/genres': '小说类型',
