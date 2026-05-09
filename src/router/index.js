@@ -13,6 +13,7 @@ import ToolsLibrary from '../views/ToolsLibrary.vue'
 import ShortStory from '../views/ShortStory.vue'
 import BookAnalysis from '../views/BookAnalysis.vue'
 import MasterCreation from '../views/MasterCreation.vue'
+import StyleImitation from '../views/StyleImitation.vue'
 
 const routes = [
   {
@@ -83,6 +84,11 @@ const routes = [
         path: 'master',
         name: 'MasterCreation',
         component: MasterCreation
+      },
+      {
+        path: 'imitation',
+        name: 'StyleImitation',
+        component: StyleImitation
       }
     ]
   }

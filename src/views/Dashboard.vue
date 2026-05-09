@@ -24,6 +24,11 @@
           <template #title>大师创作</template>
         </el-menu-item>
         
+        <el-menu-item index="/imitation">
+          <el-icon><EditPen /></el-icon>
+          <template #title>风格仿写</template>
+        </el-menu-item>
+        
         <el-menu-item index="/novels">
           <el-icon><Document /></el-icon>
           <template #title>小说列表</template>
@@ -217,6 +222,7 @@ const pageTitle = computed(() => {
   const titleMap = {
     '/': '首页',
     '/master': '大师创作',
+    '/imitation': '风格仿写',
     '/novels': '小说列表',
     '/prompts': '提示词库',
     '/genres': '小说类型',
