@@ -141,13 +141,13 @@
             <div class="about-content">
               <div class="app-info">
                 <div class="app-logo">
-                  <h1>📚 91写作</h1>
+                  <h1>☁️ 云书</h1>
                 </div>
                 <div class="app-details">
-                  <p><strong>版本：</strong>v0.7.0</p>
-                  <p><strong>更新时间：</strong>2025年7月9日</p>
-                  <p><strong>开发者：</strong>91写作团队</p>
-                  <p><strong>描述：</strong>基于AI技术的智能小说创作辅助工具，提供全方位的写作支持和创作灵感</p>
+                  <p><strong>版本：</strong>v1.0.0</p>
+                  <p><strong>更新时间：</strong>2025年5月9日</p>
+                  <p><strong>开发者：</strong>云书团队</p>
+                  <p><strong>描述：</strong>专业的AI小说创作平台，支持多种AI模型，提供大纲生成、章节创作、角色设定等一站式写作服务</p>
                 </div>
               </div>
               
@@ -218,89 +218,13 @@
                 <h3>📋 更新日志</h3>
                 
                 <div class="log-item current-version">
-                  <h4>v0.7.0 (2025-07-9) - 当前版本</h4>
+                  <h4>v1.0.0 (2025-05-09) - 当前版本</h4>
                   <ul>
-                    <li>• 优化API配置新增官方默认API</li>
-                    <li>• 增加公告弹窗和教程说明</li>
-                    <li>• 新增切换模型参数下拉框支持随时切换模型</li>
-                    <li>• 短篇小说改为短文创作，新增短文写作及配置</li>
-                    <li>• 优化短篇小说ui和逻辑</li>
-                    <li>• 修复若干bug问题</li>
-                  </ul>
-                </div>
-                
-                <div class="log-item">
-                  <h4>v0.6.0 (2025-06-26)</h4>
-                  <ul>
-                    <li>• 短篇小说新增续写功能 - 支持自定义续写方向和字数设置</li>
-                    <li>• 短篇小说选文优化功能重构 - 可以优化完成之后一键插入</li>
-                    <li>• AI正文编辑器修复部分bug问题 - 提升编辑体验稳定性</li>
-                  </ul>
-                </div>
-                
-                <div class="log-item">
-                  <h4>v0.5.0 (2025-06-24)</h4>
-                  <ul>
-                    <li>• 模型配置预设模型重新梳理</li>
-                    <li>• 短篇小说部分API兼容问题bug修复</li>
-                    <li>• Ai上下文连贯性改为可以手动选择多章，默认自动关联前两章</li>
-                    <li>• 小说无法导出bug修复</li>
-                    <li>• 若干功能bug修复</li>
-                  </ul>
-                </div>
-                
-                <div class="log-item">
-                  <h4>v0.4.0 (2025-01-15)</h4>
-                  <div class="log-category">
-                    <h5>🆕 新增功能</h5>
-                    <ul>
-                      <li>• 全新AI续写功能，支持自定义续写方向和字数</li>
-                      <li>• AI内容润色功能，支持选择内容润色和整文润色</li>
-                      <li>• 章节状态管理系统（草稿/完成/发表）</li>
-                      <li>• 事件时间线编辑和删除功能</li>
-                      <li>• 流式输出体验，实时查看AI生成过程</li>
-                    </ul>
-                  </div>
-                  
-                  <div class="log-category">
-                    <h5>🔧 功能优化</h5>
-                    <ul>
-                      <li>• 进入编辑模块自动选中第一章节</li>
-                      <li>• 提示词库润色分类重命名为"润色优化"</li>
-                      <li>• 优化续写配置显示完整内容而非概要</li>
-                      <li>• 移除章节列表中的AI优化选项</li>
-                      <li>• 续写字数上限提升至5000字</li>
-                    </ul>
-                  </div>
-                  
-                  <div class="log-category">
-                    <h5>🛠️ 修复改进</h5>
-                    <ul>
-                      <li>• 修复续写弹窗样式布局问题</li>
-                      <li>• 修复编译错误和运行时错误</li>
-                      <li>• 优化提示词选择功能</li>
-                      <li>• 改善用户交互体验</li>
-                    </ul>
-                  </div>
-                </div>
-                
-                <div class="log-item">
-                  <h4>v0.3.0 (2024-12-01)</h4>
-                  <ul>
-                    <li>• 新增短篇小说生成功能</li>
-                    <li>• 新增书籍分析工具</li>
-                    <li>• 优化AI生成流程</li>
-                    <li>• 增强用户界面交互</li>
-                  </ul>
-                </div>
-                
-                <div class="log-item">
-                  <h4>v0.2.0 (2024-02-15)</h4>
-                  <ul>
-                    <li>• 重构为模块化架构</li>
-                    <li>• 新增系统设置页面</li>
-                    <li>• 优化用户界面</li>
-                    <li>• 增强数据管理功能</li>
+                    <li>• 🎉 云书正式发布</li>
+                    <li>• ✨ 新增多主题切换功能（5种风格）</li>
+                    <li>• 🔧 简化API配置，支持多种AI模型</li>
+                    <li>• 🎨 全新UI设计，更现代的界面</li>
+                    <li>• 🐛 修复若干已知问题</li>
                   </ul>
                 </div>
               </div>
@@ -406,7 +330,7 @@ const exportAllData = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `91写作-完整备份-${new Date().toISOString().split('T')[0]}.json`
+  a.download = `云书-完整备份-${new Date().toISOString().split('T')[0]}.json`
   a.click()
   URL.revokeObjectURL(url)
   
@@ -424,7 +348,7 @@ const exportNovels = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `91写作-小说数据-${new Date().toISOString().split('T')[0]}.json`
+  a.download = `云书-小说数据-${new Date().toISOString().split('T')[0]}.json`
   a.click()
   URL.revokeObjectURL(url)
   
@@ -442,7 +366,7 @@ const exportPrompts = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `91写作-提示词库-${new Date().toISOString().split('T')[0]}.json`
+  a.download = `云书-提示词库-${new Date().toISOString().split('T')[0]}.json`
   a.click()
   URL.revokeObjectURL(url)
   
@@ -460,7 +384,7 @@ const exportGenres = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `91写作-小说类型-${new Date().toISOString().split('T')[0]}.json`
+  a.download = `云书-小说类型-${new Date().toISOString().split('T')[0]}.json`
   a.click()
   URL.revokeObjectURL(url)
   
@@ -478,7 +402,7 @@ const exportSettings = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `91写作-系统设置-${new Date().toISOString().split('T')[0]}.json`
+  a.download = `云书-系统设置-${new Date().toISOString().split('T')[0]}.json`
   a.click()
   URL.revokeObjectURL(url)
   
