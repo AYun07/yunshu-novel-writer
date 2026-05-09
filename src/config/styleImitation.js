@@ -236,3 +236,243 @@ export function buildImitationPrompt(styleProfile, userRequest) {
   
   return prompt
 }
+
+// ==================== 多文本风格融合Prompt ====================
+
+export const multiStyleMergePrompt = `你是一位专业的文学风格分析师。现在有多份文本的风格分析报告，请将它们**融合为一个统一的风格档案**。
+
+⚠️ 重要：仅融合抽象的写作风格特征，不涉及任何具体内容。
+
+请对以下多个风格档案进行融合，取各档案的精华特点，生成一个综合风格档案。以JSON格式返回，格式与单文本分析相同：
+
+{
+  "basicInfo": { "genre": "", "era": "", "tone": "", "narrativeDistance": "" },
+  "languageStyle": { "vocabulary": "", "sentencePattern": "", "rhythm": "", "metaphorStyle": "", "dialogueStyle": "", "descriptionDensity": "" },
+  "narrativeTechnique": { "pov": "", "timeline": "", "pacing": "", "suspenseTechnique": "", "structurePattern": "" },
+  "characterStyle": { "characterization": "", "characterDepth": "", "relationshipFocus": "" },
+  "worldBuilding": { "worldDetail": "", "environmentIntegration": "", "culturalElements": "" },
+  "emotionalStyle": { "emotionExpression": "", "emotionalTone": "", "readerEngagement": "" },
+  "styleSummary": "融合后的风格总结（200字以内）"
+}
+
+以下是需要融合的风格档案：
+`
+
+// ==================== 四种仿写模式Prompt ====================
+
+export const modePrompts = {
+  // 续写章节模式
+  continue: (styleProfile, context) => `你是一位专业的文学创作者。请基于以下**风格特征档案**和**前文内容**，续写新的章节。
+
+⚠️ 核心原则：续写内容必须100%原创，不得抄袭任何已有作品。
+
+## 风格特征
+${JSON.stringify(styleProfile, null, 2)}
+
+## 前文内容（最后2000字）
+${context.slice(-2000)}
+
+## 续写要求
+1. 严格遵循风格特征档案的写作风格
+2. 承接前文的情节、人物和氛围
+3. 推进故事发展，有新的冲突或转折
+4. 续写字数800-1500字
+5. 所有新增内容必须原创
+
+请直接输出续写内容：`,
+
+  // 全新创作模式
+  create: (styleProfile, theme, wordCount) => `你是一位专业的文学创作者。请基于以下**风格特征档案**，创作一个**全新的故事**。
+
+⚠️ 核心原则：所有内容必须100%原创，人物、情节、场景均为全新创作。
+
+## 风格特征
+${JSON.stringify(styleProfile, null, 2)}
+
+## 创作要求
+- 主题：${theme}
+- 目标字数：${wordCount}字
+- 严格遵循风格特征
+- 内容完整，有开头、发展、高潮、结局
+- 所有内容原创
+
+请直接输出：`,
+
+  // 内容改写模式
+  rewrite: (styleProfile, sourceText) => `你是一位专业的文学创作者。请将以下**原文内容**用指定的**风格特征**进行改写。
+
+⚠️ 核心原则：改写后的内容必须与原文在表达方式上完全不同，仅保持核心含义，所有具体描写、用词、句式均为全新创作。
+
+## 风格特征
+${JSON.stringify(styleProfile, null, 2)}
+
+## 原文内容
+${sourceText}
+
+## 改写要求
+1. 保持原文的核心含义和信息
+2. 完全使用风格特征档案中的写作风格
+3. 所有具体描写、用词、句式必须重新创作
+4. 不得保留原文的任何连续5个字以上的相同表述
+5. 改写后与原文的相似度应低于30%
+
+请直接输出改写后的内容：`,
+
+  // 跨体裁仿写模式
+  crossGenre: (styleProfile, targetGenre, theme) => `你是一位专业的文学创作者。请将以下**风格特征**应用到**不同的体裁**中。
+
+⚠️ 核心原则：所有内容必须100%原创。
+
+## 原始风格特征
+${JSON.stringify(styleProfile, null, 2)}
+
+## 跨体裁要求
+- 原始体裁：${styleProfile.basicInfo?.genre || '未指定'}
+- 目标体裁：${targetGenre}
+- 主题：${theme}
+
+## 转换要求
+1. 保留原始风格的**语言特点**（用词、句式、修辞、节奏）
+2. 保留原始风格的**情感基调**和**叙事手法**
+3. 完全按照目标体裁的**格式和结构**进行创作
+4. 所有内容原创，不抄袭任何已有作品
+5. 展现风格在不同体裁中的表现力
+
+请直接输出：`
+}
+
+// ==================== 原创度自检Prompt ====================
+
+export const originalityCheckPrompt = (generatedText, styleProfile) => `你是一位专业的文学版权审核专家。请对以下**AI生成的内容**进行原创度自检。
+
+⚠️ 检查目的：确保内容不侵犯任何已有作品的著作权。
+
+## 待检查内容
+${generatedText}
+
+## 风格参考（仅用于对比风格，非对比内容）
+风格类型：${styleProfile.basicInfo?.genre || '未指定'}
+风格总结：${styleProfile.styleSummary || '未指定'}
+
+## 请从以下维度进行检查，以JSON格式返回：
+
+{
+  "overallScore": 85,
+  "originality": {
+    "score": 90,
+    "assessment": "评估说明",
+    "risks": ["风险点1（如有）"]
+  },
+  "styleConsistency": {
+    "score": 85,
+    "assessment": "风格一致性评估"
+  },
+  "creativity": {
+    "score": 88,
+    "assessment": "创意性评估"
+  },
+  "readability": {
+    "score": 90,
+    "assessment": "可读性评估"
+  },
+  "suggestions": ["改进建议1", "改进建议2"],
+  "summary": "总体评价"
+}
+
+评分标准：
+- 90-100：优秀，高度原创
+- 80-89：良好，基本原创
+- 70-79：一般，建议修改部分内容
+- 60-69：需注意，存在较多相似表述
+- 60以下：警告，需要大幅修改
+
+请严格检查并返回JSON：`
+
+// ==================== 风格档案管理 ====================
+
+const STORAGE_KEY = 'yunshu_style_profiles'
+
+export function getSavedProfiles() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY)
+    return data ? JSON.parse(data) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveProfile(profile) {
+  const profiles = getSavedProfiles()
+  const newProfile = {
+    id: Date.now(),
+    ...profile,
+    savedAt: new Date().toISOString(),
+    isFavorite: false
+  }
+  profiles.push(newProfile)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles))
+  return newProfile
+}
+
+export function updateProfile(id, updates) {
+  const profiles = getSavedProfiles()
+  const index = profiles.findIndex(p => p.id === id)
+  if (index > -1) {
+    profiles[index] = { ...profiles[index], ...updates }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles))
+    return profiles[index]
+  }
+  return null
+}
+
+export function deleteProfile(id) {
+  const profiles = getSavedProfiles()
+  const filtered = profiles.filter(p => p.id !== id)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+}
+
+export function toggleFavorite(id) {
+  const profiles = getSavedProfiles()
+  const profile = profiles.find(p => p.id === id)
+  if (profile) {
+    profile.isFavorite = !profile.isFavorite
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles))
+    return profile
+  }
+  return null
+}
+
+export function exportProfiles() {
+  const profiles = getSavedProfiles()
+  const blob = new Blob([JSON.stringify(profiles, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `云书-风格档案-${new Date().toISOString().split('T')[0]}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export function importProfiles(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result)
+        const profiles = getSavedProfiles()
+        const newProfiles = Array.isArray(data) ? data : [data]
+        newProfiles.forEach(p => {
+          if (!profiles.find(existing => existing.id === p.id)) {
+            profiles.push({ ...p, id: Date.now() + Math.random() * 1000 })
+          }
+        })
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles))
+        resolve(profiles)
+      } catch {
+        reject(new Error('档案文件格式错误'))
+      }
+    }
+    reader.onerror = () => reject(new Error('文件读取失败'))
+    reader.readAsText(file)
+  })
+}
