@@ -664,7 +664,7 @@ export const useNovelStore = defineStore('novel', () => {
 
   // ==================== 大师创作 ====================
   
-  const generateContent = async (params, onProgress = null) => {
+  const masterCreation = async (params, onProgress = null) => {
     if (!isApiConfigured.value) {
       throw new Error('请先配置API密钥')
     }
@@ -683,6 +683,10 @@ export const useNovelStore = defineStore('novel', () => {
     } finally {
       isGenerating.value = false
     }
+  }
+
+  const setArticleSummary = (summary) => {
+    articleSummary.value = summary
   }
 
   // ==================== 导出 ====================
@@ -764,6 +768,7 @@ export const useNovelStore = defineStore('novel', () => {
     importCorpus,
     setGeneratingSummary,
     setArticleSummary,
-    generateContent
+    generateContent,
+    masterCreation
   }
 })

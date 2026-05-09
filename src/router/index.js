@@ -1,15 +1,13 @@
-import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import Dashboard from '../views/Dashboard.vue'
 import HomePage from '../views/HomePage.vue'
 import PromptsLibrary from '../views/PromptsLibrary.vue'
 import NovelManagement from '../views/NovelManagement.vue'
 import WritingGoals from '../views/WritingGoals.vue'
 import TokenBilling from '../views/TokenBilling.vue'
-import ApiConfig from '../views/ApiConfig.vue'
 import Settings from '../views/Settings.vue'
 import ChapterManagement from '../views/ChapterManagement.vue'
 import Writer from '../views/Writer.vue'
-import Home from '../views/Home.vue'
 import GenreManagement from '../views/GenreManagement.vue'
 import ToolsLibrary from '../views/ToolsLibrary.vue'
 import ShortStory from '../views/ShortStory.vue'
@@ -45,11 +43,6 @@ const routes = [
         path: 'billing',
         name: 'TokenBilling',
         component: TokenBilling
-      },
-      {
-        path: 'config',
-        name: 'ApiConfig',
-        component: ApiConfig
       },
       {
         path: 'settings',
@@ -93,7 +86,7 @@ const routes = [
       }
     ]
   }
-  ]
+]
 
 const router = createRouter({
   history: createWebHashHistory(),

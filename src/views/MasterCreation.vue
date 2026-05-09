@@ -418,7 +418,7 @@ const startCreation = async () => {
       refinementMode: creationParams.value.refinementMode
     }
 
-    const result = await novelStore.generateContent(params, (progress) => {
+    const result = await novelStore.masterCreation(params, (progress) => {
       progressMessage.value = progress.message
       
       if (progress.step === 1) {
