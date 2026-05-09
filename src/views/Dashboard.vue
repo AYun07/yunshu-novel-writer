@@ -19,6 +19,11 @@
           <template #title>首页</template>
         </el-menu-item>
         
+        <el-menu-item index="/master">
+          <el-icon><MagicStick /></el-icon>
+          <template #title>大师创作</template>
+        </el-menu-item>
+        
         <el-menu-item index="/novels">
           <el-icon><Document /></el-icon>
           <template #title>小说列表</template>
@@ -174,7 +179,7 @@ import { useNovelStore } from '@/stores/novel'
 import { 
   House, Document, ChatLineSquare, Collection, Notebook, Aim, 
   CreditCard, Setting, Key, Tools, EditPen, DataAnalysis,
-  Expand, Fold, Brush
+  Expand, Fold, Brush, MagicStick
 } from '@element-plus/icons-vue'
 import ApiConfig from '@/components/ApiConfig.vue'
 import { ElMessage } from 'element-plus'
@@ -211,6 +216,7 @@ const availableModels = computed(() => [
 const pageTitle = computed(() => {
   const titleMap = {
     '/': '首页',
+    '/master': '大师创作',
     '/novels': '小说列表',
     '/prompts': '提示词库',
     '/genres': '小说类型',

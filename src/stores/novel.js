@@ -662,6 +662,29 @@ export const useNovelStore = defineStore('novel', () => {
     return Math.min(100, score)
   }
 
+  // ==================== 大师创作 ====================
+  
+  const generateContent = async (params, onProgress = null) => {
+    if (!isApiConfigured.value) {
+      throw new Error('请先配置API密钥')
+    }
+    
+    isGenerating.value = true
+    
+    try {
+      const result = await apiService.masterCreation(params, onProgress)
+      if (result?.content) {
+        generatedContent.value = result.content
+      }
+      return result
+    } catch (error) {
+      console.error('大师创作失败:', error)
+      throw error
+    } finally {
+      isGenerating.value = false
+    }
+  }
+
   // ==================== 导出 ====================
   
   return {
