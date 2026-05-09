@@ -1,5 +1,9 @@
 import billingService from './billing.js'
 import { ElMessage } from 'element-plus'
+import { getStyleById } from '../config/masterStyles.js'
+import { getTechniqueById } from '../config/literaryTechniques.js'
+import { generateRefinementPrompt } from '../config/refinementSystem.js'
+import { getGenreById } from '../config/genreTemplates.js'
 
 class APIService {
   constructor() {
@@ -660,6 +664,182 @@ ${content}
     } catch (error) {
       console.error('文章分析失败:', error)
       throw error
+    }
+  }
+
+  // ==================== 文学引擎方法 ====================
+
+  /**
+   * 使用大师风格生成内容
+   */
+  async generateWithMasterStyle(styleId, theme, outline = '', characters = [], wordCount = 2000) {
+    const style = getStyleById(styleId)
+    if (!style) throw new Error('未找到指定的风格')
+
+    const characterInfo = characters.length > 0
+      ? '\n\n## 角色设定\n' + characters.map(c => `- ${c.name}：${c.description}`).join('\n')
+      : ''
+
+    const outlineInfo = outline ? `\n\n## 大纲\n${outline}` : ''
+
+    const prompt = `${style.systemPrompt}
+
+## 创作任务
+- 主题：${theme}${outlineInfo}${characterInfo}
+- 字数：约${wordCount}字
+
+请严格按照上述风格要求进行创作，直接输出作品内容。`
+
+    return await this.generateTextStream(prompt, { temperature: 0.8, maxTokens: null }, null)
+  }
+
+  /**
+   * 使用文学技法生成内容
+   */
+  async generateWithTechnique(techniqueId, theme, context = '', wordCount = 1500) {
+    const technique = getTechniqueById(techniqueId)
+    if (!technique) throw new Error('未找到指定的技法')
+
+    const contextInfo = context ? `\n\n## 创作背景\n${context}` : ''
+
+    const prompt = `${technique.prompt}
+
+## 创作任务
+- 主题：${theme}${contextInfo}
+- 字数：约${wordCount}字
+
+请严格按照上述技法要求进行创作，直接输出作品内容。`
+
+    return await this.generateTextStream(prompt, { temperature: 0.8, maxTokens: null }, null)
+  }
+
+  /**
+   * 使用创作类型模板生成内容
+   */
+  async generateWithGenre(genreId, theme, outline = '', characters = [], worldSettings = [], wordCount = 2000) {
+    const genre = getGenreById(genreId)
+    if (!genre) throw new Error('未找到指定的类型模板')
+
+    const characterInfo = characters.length > 0
+      ? '\n\n## 角色设定\n' + characters.map(c => `- ${c.name}：${c.description}`).join('\n')
+      : ''
+
+    const worldInfo = worldSettings.length > 0
+      ? '\n\n## 世界观设定\n' + worldSettings.map(w => `- ${w.title}：${w.description}`).join('\n')
+      : ''
+
+    const outlineInfo = outline ? `\n\n## 大纲\n${outline}` : ''
+
+    const prompt = `${genre.systemPrompt}
+
+## 创作任务
+- 主题：${theme}${outlineInfo}${characterInfo}${worldInfo}
+- 字数：约${wordCount}字
+
+请严格按照上述类型要求进行创作，直接输出作品内容。`
+
+    return await this.generateTextStream(prompt, { temperature: 0.75, maxTokens: null }, null)
+  }
+
+  /**
+   * 多轮精修 - 生成初稿
+   */
+  async generateDraft(params, onChunk = null) {
+    const prompt = generateRefinementPrompt('draft', params)
+    return await this.generateTextStream(prompt, { temperature: 0.75, maxTokens: null }, onChunk)
+  }
+
+  /**
+   * 多轮精修 - 深度润色
+   */
+  async polishContent(content, styleInfo = '', onChunk = null) {
+    const prompt = generateRefinementPrompt('polish', {
+      content: content,
+      style: styleInfo || '请以最高文学标准进行润色'
+    })
+    return await this.generateTextStream(prompt, { temperature: 0.7, maxTokens: null }, onChunk)
+  }
+
+  /**
+   * 多轮精修 - 终审
+   */
+  async finalReview(content, styleInfo = '') {
+    const prompt = generateRefinementPrompt('final_review', {
+      content: content,
+      style: styleInfo || '请以诺贝尔文学奖评审标准进行评审'
+    })
+    return await this.generateTextStream(prompt, { temperature: 0.5, maxTokens: null }, null)
+  }
+
+  /**
+   * 一键大师级创作（风格 + 技法 + 类型 + 精修）
+   */
+  async masterCreation(params, onProgress = null) {
+    const { styleId, techniqueIds, genreId, theme, outline, characters, worldSettings, wordCount } = params
+
+    // 第一步：生成初稿
+    if (onProgress) onProgress({ step: 1, status: 'generating', message: '正在生成初稿...' })
+    
+    let content = ''
+    try {
+      if (genreId) {
+        content = await this.generateWithGenre(genreId, theme, outline, characters, worldSettings, wordCount)
+      } else if (styleId) {
+        content = await this.generateWithMasterStyle(styleId, theme, outline, characters, wordCount)
+      } else {
+        content = await this.generateDraft({
+          theme, genre: genreId || '通用', style: '专业文学', wordCount,
+          characters: characters.map(c => `${c.name}：${c.description}`).join('\n'),
+          worldSettings: worldSettings.map(w => `${w.title}：${w.description}`).join('\n'),
+          outline: outline || '请自由发挥'
+        })
+      }
+    } catch (error) {
+      if (onProgress) onProgress({ step: 1, status: 'error', message: '初稿生成失败: ' + error.message })
+      throw error
+    }
+
+    // 第二步：应用文学技法
+    if (onProgress) onProgress({ step: 2, status: 'generating', message: '正在应用文学技法...' })
+    
+    if (techniqueIds && techniqueIds.length > 0) {
+      for (const techniqueId of techniqueIds) {
+        try {
+          const technique = getTechniqueById(techniqueId)
+          if (technique) {
+            const techniquePrompt = `${technique.prompt}\n\n请将以下技法应用到作品中：\n\n## 原文\n${content}\n\n## 要求\n请保持原有的故事内容和结构，但运用上述技法提升文学品质。直接输出修改后的完整内容。`
+            content = await this.generateTextStream(techniquePrompt, { temperature: 0.7, maxTokens: null }, null)
+          }
+        } catch (error) {
+          console.warn(`技法 ${techniqueId} 应用失败:`, error)
+        }
+      }
+    }
+
+    // 第三步：深度润色
+    if (onProgress) onProgress({ step: 3, status: 'generating', message: '正在进行深度润色...' })
+    
+    try {
+      const style = styleId ? getStyleById(styleId) : null
+      const styleInfo = style ? `${style.name}风格 - ${style.description}` : '最高文学标准'
+      content = await this.polishContent(content, styleInfo)
+    } catch (error) {
+      console.warn('润色失败:', error)
+    }
+
+    if (onProgress) onProgress({ step: 4, status: 'generating', message: '正在进行终审...' })
+
+    // 第四步：终审
+    try {
+      const style = styleId ? getStyleById(styleId) : null
+      const styleInfo = style ? `${style.name}风格 - ${style.description}` : '诺贝尔文学奖评审标准'
+      const reviewResult = await this.finalReview(content, styleInfo)
+      
+      if (onProgress) onProgress({ step: 4, status: 'completed', message: '创作完成！', content, review: reviewResult })
+      return { content, review: reviewResult }
+    } catch (error) {
+      if (onProgress) onProgress({ step: 4, status: 'completed', message: '创作完成（终审跳过）', content })
+      return { content, review: null }
     }
   }
 }
