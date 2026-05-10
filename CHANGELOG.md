@@ -6,6 +6,29 @@
 
 ## [v2.5.0] - 2026-05-10
 
+### 🚀 GitHub Actions 自动构建
+
+**CI/CD 工作流**
+- 创建 `.github/workflows/release.yml` 自动构建工作流
+- 支持触发方式：Git 标签推送（v*）和手动触发（workflow_dispatch）
+- Web 构建：Ubuntu 环境，pnpm + Node.js 18
+- Windows 构建：NSIS 安装包 + 便携版
+- macOS 构建：DMG + ZIP（支持 x64 和 arm64）
+- Linux 构建：AppImage + DEB 包
+- Android 构建：Debug APK（Capacitor + Gradle）
+- 自动创建 GitHub Release，上传所有构建产物
+
+**构建资源配置**
+- 创建 `build/entitlements.mac.plist` - macOS 权限配置（网络、文件、JIT 等）
+- 创建 `build/installer.nsh` - Windows NSIS 安装脚本（文件关联、URL 协议、用户数据管理）
+- 添加图标文件说明文档（icon.ico、icon.icns、Linux icons）
+
+**版本号统一**
+- package.json version 更新为 2.5.0
+- vite.config.js __APP_VERSION__ 更新为 2.5.0
+- manifest.json info.version 更新为 2.5.0
+- sw.js CACHE_VERSION 更新为 v2.5.0
+
 ### 📱 Capacitor 移动端集成
 
 **新增功能**
