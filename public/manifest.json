@@ -1,0 +1,234 @@
+{
+  "name": "云书",
+  "short_name": "云书",
+  "description": "AI智能小说创作平台 - 专业的AI小说创作工具，支持多种AI模型，提供大纲生成、章节创作、角色设定等一站式写作服务",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#409eff",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities", "books"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "云书首页"
+    },
+    {
+      "src": "/screenshots/writer.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "写作界面"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "移动端界面"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "大师创作",
+      "short_name": "大师创作",
+      "description": "使用AI大师模式进行智能创作",
+      "url": "/master-creation",
+      "icons": [
+        {
+          "src": "/icons/shortcut-master.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "专注模式",
+      "short_name": "专注模式",
+      "description": "进入无干扰的专注写作模式",
+      "url": "/focus-mode",
+      "icons": [
+        {
+          "src": "/icons/shortcut-focus.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "导出中心",
+      "short_name": "导出中心",
+      "description": "导出小说为多种格式",
+      "url": "/export-center",
+      "icons": [
+        {
+          "src": "/icons/shortcut-export.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "新建小说",
+      "short_name": "新建",
+      "description": "创建一部新的小说作品",
+      "url": "/novel-management?action=create",
+      "icons": [
+        {
+          "src": "/icons/shortcut-new.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "file",
+          "accept": ["text/plain", "text/markdown", "application/epub+zip", ".txt", ".md", ".epub"]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/import",
+      "accept": {
+        "text/plain": [".txt"],
+        "text/markdown": [".md"],
+        "application/epub+zip": [".epub"]
+      }
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+yunshu",
+      "url": "/protocol-handler?type=%s"
+    }
+  ],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "theme_color_overrides": {
+    "default": "#409eff",
+    "dark": "#1a1a2e",
+    "warm": "#f5a623",
+    "green": "#67c23a",
+    "purple": "#9b59b6"
+  },
+  "info": {
+    "developer": {
+      "name": "云书团队",
+      "url": "https://yunshu.app"
+    },
+    "version": "2.0.0",
+    "release_date": "2024-01-01",
+    "changelog_url": "https://yunshu.app/changelog"
+  }
+}

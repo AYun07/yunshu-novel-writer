@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 云书图标 - 书本与云的结合 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+    <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#e0e0e0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆 -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGradient)"/>
+  
+  <!-- 云朵形状 -->
+  <g fill="url(#cloudGradient)" opacity="0.9">
+    <!-- 云朵主体 -->
+    <ellipse cx="200" cy="200" rx="60" ry="50"/>
+    <ellipse cx="280" cy="190" rx="70" ry="55"/>
+    <ellipse cx="340" cy="210" rx="50" ry="40"/>
+    <ellipse cx="240" cy="230" rx="80" ry="50"/>
+    <ellipse cx="320" cy="240" rx="60" ry="45"/>
+  </g>
+  
+  <!-- 书本形状 -->
+  <g fill="#ffffff">
+    <!-- 左页 -->
+    <path d="M150 280 L150 400 Q256 380 256 380 L256 300 Q200 310 150 280 Z" fill="#ffffff" opacity="0.95"/>
+    <!-- 右页 -->
+    <path d="M362 280 L362 400 Q256 380 256 380 L256 300 Q312 310 362 280 Z" fill="#ffffff" opacity="0.9"/>
+    <!-- 书脊 -->
+    <rect x="252" y="290" width="8" height="100" fill="#e0e0e0" rx="2"/>
+    <!-- 页面线条 -->
+    <line x1="170" y1="310" x2="240" y2="320" stroke="#667eea" stroke-width="2" opacity="0.5"/>
+    <line x1="170" y1="330" x2="240" y2="340" stroke="#667eea" stroke-width="2" opacity="0.5"/>
+    <line x1="170" y1="350" x2="220" y2="358" stroke="#667eea" stroke-width="2" opacity="0.5"/>
+    <line x1="272" y1="320" x2="342" y2="310" stroke="#667eea" stroke-width="2" opacity="0.5"/>
+    <line x1="272" y1="340" x2="342" y2="330" stroke="#667eea" stroke-width="2" opacity="0.5"/>
+    <line x1="272" y1="358" x2="320" y2="350" stroke="#667eea" stroke-width="2" opacity="0.5"/>
+  </g>
+  
+  <!-- AI 星光效果 -->
+  <g fill="#ffd700">
+    <circle cx="380" cy="150" r="4"/>
+    <circle cx="400" cy="170" r="3"/>
+    <circle cx="360" cy="160" r="2"/>
+  </g>
+</svg>
