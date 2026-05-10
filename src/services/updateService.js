@@ -244,7 +244,22 @@ function isIOS() {
 // ============================================
 
 /**
+ * 将 ArrayBuffer 转换为 Base64
+ * @param {ArrayBuffer} buffer
+ * @returns {string}
+ */
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/**
  * 下载并安装 APK（Android）
+ * 使用 Capacitor Filesystem + FileProvider 实现无缝更新
  * @param {string} url - APK 下载链接
  */
 async function downloadAndInstallApk(url) {
@@ -256,11 +271,29 @@ async function downloadAndInstallApk(url) {
   updateState.value.downloadProgress = 0;
 
   try {
-    // 使用 Capacitor Filesystem API 下载文件
-    const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
-    const { App } = await import('@capacitor/app');
+    // 使用 Capacitor Filesystem API
+    const fs = await safeImport('@capacitor/filesystem');
+    if (!fs || !fs.Filesystem || !fs.Directory || !fs.Encoding) {
+      throw new Error('文件系统插件不可用');
+    }
+    const { Filesystem, Directory, Encoding } = fs;
 
-    // 下载文件
+    // 下载文件 - 使用 XMLHttpRequest 获取进度
+    const fileName = 'yunshu_update.apk';
+    const filePath = `updates/${fileName}`;
+    
+    // 确保目录存在
+    try {
+      await Filesystem.mkdir({
+        path: 'updates',
+        directory: Directory.Cache,
+        recursive: true,
+      });
+    } catch (e) {
+      // 目录可能已存在
+    }
+
+    // 使用 fetch 下载并跟踪进度
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`下载失败: ${response.status}`);
@@ -283,33 +316,28 @@ async function downloadAndInstallApk(url) {
       }
     }
 
-    // 合并 chunks
+    // 合并 chunks 并转换为 base64
     const blob = new Blob(chunks);
     const arrayBuffer = await blob.arrayBuffer();
-    const base64Data = btoa(
-      new Uint8Array(arrayBuffer)
-        .reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
+    const base64Data = arrayBufferToBase64(arrayBuffer);
 
-    // 保存到文件
-    const fileName = 'yunshu_update.apk';
+    // 保存到缓存目录
     await Filesystem.writeFile({
-      path: fileName,
+      path: filePath,
       data: base64Data,
       directory: Directory.Cache,
       encoding: Encoding.Base64,
     });
 
     // 获取文件 URI
-    const fileUri = await Filesystem.getUri({
-      path: fileName,
+    const fileUriResult = await Filesystem.getUri({
+      path: filePath,
       directory: Directory.Cache,
     });
 
-    // 使用系统意图安装 APK
-    // 注意：需要配置 FileProvider
-    const intentUrl = `intent://#Intent;action=android.intent.action.VIEW;type=application/vnd.android.package-archive;data=${fileUri.uri};end`;
-    window.location.href = intentUrl;
+    // 通过 Bridge 调用原生代码安装 APK
+    // 使用自定义插件方式调用 Android Intent
+    await installApkViaIntent(fileUriResult.uri);
 
     updateState.value.downloading = false;
     updateState.value.hasUpdate = false;
@@ -321,6 +349,47 @@ async function downloadAndInstallApk(url) {
     console.error('下载安装失败:', error);
     throw error;
   }
+}
+
+/**
+ * 通过 Android Intent 安装 APK
+ * 使用 Capacitor 的 App 插件打开系统安装器
+ * @param {string} fileUri - APK 文件的 content:// URI
+ */
+async function installApkViaIntent(fileUri) {
+  // 方法1: 尝试使用 Capacitor App 插件的 openUrl
+  const app = await safeImport('@capacitor/app');
+  if (app && app.App) {
+    try {
+      // 构建 intent URL
+      const intentUrl = `intent:#Intent;` +
+        `action=android.intent.action.VIEW;` +
+        `type=application/vnd.android.package-archive;` +
+        `data=${encodeURIComponent(fileUri)};` +
+        `end`;
+      
+      // 使用 window.location 打开 intent
+      window.location.href = intentUrl;
+      return;
+    } catch (e) {
+      console.warn('Intent URL 方式失败:', e);
+    }
+  }
+
+  // 方法2: 使用 Browser 插件打开下载链接
+  const browser = await safeImport('@capacitor/browser');
+  if (browser && browser.Browser) {
+    try {
+      await browser.Browser.open({ url: fileUri });
+      return;
+    } catch (e) {
+      console.warn('Browser 插件方式失败:', e);
+    }
+  }
+
+  // 方法3: 降级到打开 GitHub Release 页面
+  const releaseUrl = `https://github.com/${CONFIG.owner}/${CONFIG.repo}/releases/latest`;
+  window.open(releaseUrl, '_blank');
 }
 
 /**

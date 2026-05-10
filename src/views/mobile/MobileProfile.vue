@@ -144,7 +144,7 @@
           <el-icon><ArrowRight /></el-icon>
         </div>
 
-        <div class="setting-item" @click="showSyncSettings = true">
+        <div class="setting-item" @click="router.push('/m/sync')">
           <div class="setting-icon">
             <el-icon><Connection /></el-icon>
           </div>

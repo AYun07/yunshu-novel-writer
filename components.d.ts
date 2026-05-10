@@ -83,6 +83,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     StorylineGantt: typeof import('./src/components/StorylineGantt.vue')['default']
     SummaryGenerator: typeof import('./src/components/SummaryGenerator.vue')['default']
+    SyncSettings: typeof import('./src/components/SyncSettings.vue')['default']
     SyncStatus: typeof import('./src/components/SyncStatus.vue')['default']
     SyncToast: typeof import('./src/components/SyncToast.vue')['default']
     TemplateManager: typeof import('./src/components/TemplateManager.vue')['default']

@@ -116,6 +116,7 @@ const routes = [
   { path: '/m/writer', name: 'MobileWriter', component: MobileWriter, meta: { title: '写作', isMobile: true } },
   { path: '/m/profile', name: 'MobileProfile', component: MobileProfile, meta: { title: '我的', isMobile: true } },
   { path: '/m/quick-write', name: 'MobileQuickWrite', component: MobileQuickWrite, meta: { title: '快写', isMobile: true } },
+  { path: '/m/sync', name: 'MobileSync', component: () => import('../components/SyncSettings.vue'), meta: { title: '数据同步', isMobile: true } },
 
   // 404
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound, meta: { title: '页面不存在' } }
