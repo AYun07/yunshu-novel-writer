@@ -11,21 +11,21 @@ on:
         required: true
         default: '2.5.0'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # Web 构建
   build-web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm run build
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+      - run: npm run build
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist
@@ -37,19 +37,16 @@ jobs:
     needs: build-web
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
       - uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist/
-      - run: pnpm run electron:build:win
+      - run: npm run electron:build:win
         continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: always()
@@ -68,19 +65,16 @@ jobs:
     needs: build-web
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
       - uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist/
-      - run: pnpm run electron:build:mac
+      - run: npm run electron:build:mac
         continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: always()
@@ -99,19 +93,16 @@ jobs:
     needs: build-web
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
       - uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist/
-      - run: pnpm run electron:build:linux
+      - run: npm run electron:build:linux
         continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: always()
@@ -130,23 +121,20 @@ jobs:
     needs: build-web
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
+          node-version: '24'
+          cache: 'npm'
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      - run: pnpm install
+      - run: npm ci --legacy-peer-deps
       - uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist/
-      - run: pnpm run cap:android
+      - run: npm run cap:android
         continue-on-error: true
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
         continue-on-error: true
