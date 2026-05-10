@@ -28,7 +28,7 @@ const isInstallable = ref(false)
 const isInstalled = ref(false)
 
 /** 是否在线 */
-const isOnline = ref(navigator.onLine)
+const isOnline = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
 
 /** 是否需要更新 */
 const needUpdate = ref(false)
@@ -50,15 +50,21 @@ let newWorker = null
  * 是否是 PWA 模式运行
  */
 const isStandalone = computed(() => {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone ||
-    document.referrer.includes('android-app://')
+  if (typeof window === 'undefined') return false
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone ||
+      document.referrer.includes('android-app://')
+  } catch {
+    return false
+  }
 })
 
 /**
  * 是否支持 PWA
  */
 const isPWASupported = computed(() => {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return false
   return 'serviceWorker' in navigator && 'PushManager' in window
 })
 

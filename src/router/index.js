@@ -129,9 +129,29 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to) => {
+/**
+ * 检测是否为移动端或 Capacitor 原生环境
+ */
+function isMobileOrNative() {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent.toLowerCase()
+  // 检测 Capacitor 原生环境
+  if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    return true
+  }
+  // 检测移动端 UA
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua)
+}
+
+router.beforeEach((to, from) => {
+  // 设置页面标题
   if (typeof document !== 'undefined') {
     document.title = to.meta.title ? `${to.meta.title} - 云书` : '云书 - AI辅助写作工具'
+  }
+
+  // 移动端/Capacitor 环境自动重定向到 /m
+  if (isMobileOrNative() && !to.path.startsWith('/m') && to.name !== 'NotFound') {
+    return { path: '/m', query: to.query }
   }
 })
 

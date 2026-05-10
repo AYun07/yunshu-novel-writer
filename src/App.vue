@@ -55,6 +55,11 @@ const isMobile = computed(() => {
     return true
   }
 
+  // 优先检测 Capacitor 原生环境
+  if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    return true
+  }
+
   // 根据设备存储状态判断
   return deviceStore.isMobile
 })
