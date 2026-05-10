@@ -27,12 +27,12 @@ export const useDeviceStore = defineStore('device', () => {
   /**
    * 屏幕宽度
    */
-  const screenWidth = ref(window.innerWidth)
+  const screenWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
 
   /**
    * 屏幕高度
    */
-  const screenHeight = ref(window.innerHeight)
+  const screenHeight = ref(typeof window !== 'undefined' ? window.innerHeight : 768)
 
   // ==================== 计算属性 ====================
 
@@ -78,6 +78,11 @@ export const useDeviceStore = defineStore('device', () => {
    * 检测设备类型
    */
   const detectDevice = () => {
+    // 安全检查：确保在浏览器环境中
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+      return
+    }
+    
     const userAgent = navigator.userAgent.toLowerCase()
     const width = window.innerWidth
 

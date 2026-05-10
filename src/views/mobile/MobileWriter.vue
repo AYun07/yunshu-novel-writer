@@ -802,8 +802,10 @@ onMounted(async () => {
   }, 1000)
 
   // 添加手势监听
-  document.addEventListener('touchstart', handleTouchStart)
-  document.addEventListener('touchend', handleTouchEnd)
+  try { if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('touchstart', handleTouchStart)
+    document.addEventListener('touchend', handleTouchEnd)
+  } } catch(e) {}
 })
 
 onUnmounted(() => {
@@ -819,8 +821,10 @@ onUnmounted(() => {
   releaseWakeLock()
 
   // 移除手势监听
-  document.removeEventListener('touchstart', handleTouchStart)
-  document.removeEventListener('touchend', handleTouchEnd)
+  try { if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+    document.removeEventListener('touchstart', handleTouchStart)
+    document.removeEventListener('touchend', handleTouchEnd)
+  } } catch(e) {}
 })
 
 // 监听设置变化并保存到本地存储

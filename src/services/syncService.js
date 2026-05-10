@@ -39,7 +39,7 @@ export const syncState = reactive({
   lastSyncTime: null,
   lastSyncError: null,
   pendingChanges: 0,
-  isOnline: navigator.onLine,
+  isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true, // 默认在线，客户端会更新
   syncProgress: 0,
   currentOperation: ''
 })
@@ -81,7 +81,10 @@ class OfflineQueue {
   constructor() {
     this.queue = []
     this.storageKey = 'yunshu_sync_queue'
-    this.loadFromStorage()
+    // 延迟加载，避免在SSR环境中出错
+    if (typeof localStorage !== 'undefined') {
+      this.loadFromStorage()
+    }
   }
 
   /**
@@ -89,6 +92,7 @@ class OfflineQueue {
    */
   loadFromStorage() {
     try {
+      if (typeof localStorage === 'undefined') return
       const stored = localStorage.getItem(this.storageKey)
       if (stored) {
         this.queue = JSON.parse(stored)
@@ -105,6 +109,7 @@ class OfflineQueue {
    */
   saveToStorage() {
     try {
+      if (typeof localStorage === 'undefined') return
       localStorage.setItem(this.storageKey, JSON.stringify(this.queue))
       syncState.pendingChanges = this.queue.length
     } catch (error) {
@@ -200,12 +205,24 @@ class SyncService {
   async initialize() {
     if (this.isInitialized) return
 
-    // 监听网络状态
-    window.addEventListener('online', this.handleOnline.bind(this))
-    window.addEventListener('offline', this.handleOffline.bind(this))
+    // 监听网络状态（仅在浏览器环境）
+    try {
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('online', this.handleOnline.bind(this))
+        window.addEventListener('offline', this.handleOffline.bind(this))
+      }
+    } catch (e) {
+      console.warn('[syncService] 添加网络状态监听器失败:', e)
+    }
 
-    // 监听页面可见性变化
-    document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this))
+    // 监听页面可见性变化（仅在浏览器环境）
+    try {
+      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+        document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this))
+      }
+    } catch (e) {
+      console.warn('[syncService] 添加可见性监听器失败:', e)
+    }
 
     // 启动自动同步
     this.startAutoSync()
@@ -323,7 +340,9 @@ class SyncService {
       syncState.lastSyncError = null
 
       // 保存同步时间到本地存储
-      localStorage.setItem('yunshu_last_sync', syncState.lastSyncTime.toString())
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('yunshu_last_sync', syncState.lastSyncTime.toString())
+      }
 
       return { success: true }
     } catch (error) {
@@ -578,6 +597,7 @@ class SyncService {
    * @returns {string} 认证令牌
    */
   getAuthToken() {
+    if (typeof localStorage === 'undefined') return ''
     return localStorage.getItem('yunshu_auth_token') || ''
   }
 
@@ -585,6 +605,7 @@ class SyncService {
    * 获取设备ID
    */
   getDeviceId() {
+    if (typeof localStorage === 'undefined') return `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     let deviceId = localStorage.getItem('yunshu_device_id')
     if (!deviceId) {
       deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -597,6 +618,7 @@ class SyncService {
    * 获取同步版本号
    */
   async getSyncVersion() {
+    if (typeof localStorage === 'undefined') return null
     const version = localStorage.getItem('yunshu_sync_version')
     return parseInt(version) || 1
   }
@@ -605,6 +627,7 @@ class SyncService {
    * 增加同步版本号
    */
   async incrementSyncVersion() {
+    if (typeof localStorage === 'undefined') return 1
     const version = await this.getSyncVersion()
     localStorage.setItem('yunshu_sync_version', (version + 1).toString())
     return version + 1
@@ -649,7 +672,7 @@ class SyncService {
       }
 
       // 更新同步版本
-      if (data.version) {
+      if (data.version && typeof localStorage !== 'undefined') {
         localStorage.setItem('yunshu_sync_version', data.version.toString())
       }
 
@@ -671,8 +694,10 @@ class SyncService {
     syncState.syncProgress = 0
 
     // 清除本地存储
-    localStorage.removeItem('yunshu_last_sync')
-    localStorage.removeItem('yunshu_sync_version')
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('yunshu_last_sync')
+      localStorage.removeItem('yunshu_sync_version')
+    }
 
     // 重置所有数据的同步状态
     const tables = ['projects', 'chapters', 'characters', 'plotPoints', 'snippets']
@@ -696,6 +721,7 @@ export const syncService = new SyncService()
  * 检查是否需要同步
  */
 export async function checkNeedSync() {
+  if (typeof localStorage === 'undefined') return false
   const lastSync = parseInt(localStorage.getItem('yunshu_last_sync') || '0')
   const now = Date.now()
 

@@ -76,6 +76,11 @@ export const LanguageDetector = {
    * @returns {string} 检测到的语言代码
    */
   detectBrowserLanguage() {
+    // 安全检查：确保在浏览器环境中
+    if (typeof navigator === 'undefined') {
+      return DEFAULT_LANGUAGE
+    }
+    
     // 获取浏览器语言设置
     const browserLang = navigator.language || navigator.userLanguage
     
@@ -118,6 +123,10 @@ export const LanguageDetector = {
    * @returns {string|null} URL 参数中的语言代码
    */
   getLanguageFromURL() {
+    // 安全检查：确保在浏览器环境中
+    if (typeof window === 'undefined') {
+      return null
+    }
     const urlParams = new URLSearchParams(window.location.search)
     const lang = urlParams.get('lang')
     
@@ -418,13 +427,17 @@ export function setLocale(locale) {
   // 保存到存储
   LanguageStorage.save(locale)
   
-  // 更新 HTML lang 属性
-  document.documentElement.lang = locale
+  // 更新 HTML lang 属性（仅在浏览器环境）
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = locale
+  }
   
-  // 触发语言变更事件
-  window.dispatchEvent(new CustomEvent('locale-change', {
-    detail: { locale }
-  }))
+  // 触发语言变更事件（仅在浏览器环境）
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('locale-change', {
+      detail: { locale }
+    }))
+  }
   
   console.log(`Language changed to: ${locale}`)
   return true
@@ -475,12 +488,16 @@ export function initI18n() {
   // 设置语言
   currentLocale.value = bestLocale
   
-  // 更新 HTML lang 属性
-  document.documentElement.lang = bestLocale
+  // 更新 HTML lang 属性（仅在浏览器环境）
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = bestLocale
+  }
   
   // 监听语言变化
   watch(currentLocale, (newLocale) => {
-    document.documentElement.lang = newLocale
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = newLocale
+    }
     LanguageStorage.save(newLocale)
   })
   

@@ -48,11 +48,11 @@
           <el-icon><DataAnalysis /></el-icon>
           <template #title>质量分析</template>
         </el-menu-item>
-        <el-menu-item index="/ideas">
+        <el-menu-item index="/idea-board">
           <el-icon><Sunny /></el-icon>
           <template #title>灵感工坊</template>
         </el-menu-item>
-        <el-menu-item index="/cards">
+        <el-menu-item index="/index-cards">
           <el-icon><Postcard /></el-icon>
           <template #title>索引卡片</template>
         </el-menu-item>
@@ -75,7 +75,7 @@
           <el-icon><Edit /></el-icon>
           <template #title>写作编辑器</template>
         </el-menu-item>
-        <el-menu-item index="/graph">
+        <el-menu-item index="/chapter-graph">
           <el-icon><Share /></el-icon>
           <template #title>章节图谱</template>
         </el-menu-item>
@@ -128,7 +128,7 @@
           <el-icon><User /></el-icon>
           <template #title>协作中心</template>
         </el-menu-item>
-        <el-menu-item index="/collaboration-hub">
+        <el-menu-item index="/collab-team">
           <el-icon><UserFilled /></el-icon>
           <template #title>协作中心</template>
         </el-menu-item>
@@ -400,8 +400,13 @@ const handleMenuSelect = (index) => { router.push(index) }
 
 const handleThemeChange = (theme) => {
   currentTheme.value = theme
-  localStorage.setItem('yunshu_theme', theme)
-  document.documentElement.setAttribute('data-theme', theme)
+  // 安全检查：确保在浏览器环境中
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('yunshu_theme', theme)
+  }
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', theme)
+  }
   ElMessage.success(`已切换到${getThemeName(theme)}`)
 }
 
@@ -438,9 +443,14 @@ const handleKeydown = (e) => {
 
 // 初始化
 const initializeApp = () => {
-  const savedTheme = localStorage.getItem('yunshu_theme') || 'default'
-  currentTheme.value = savedTheme
-  document.documentElement.setAttribute('data-theme', savedTheme)
+  // 安全检查：确保在浏览器环境中
+  if (typeof localStorage !== 'undefined') {
+    const savedTheme = localStorage.getItem('yunshu_theme') || 'default'
+    currentTheme.value = savedTheme
+  }
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', currentTheme.value)
+  }
   if (isApiConfigured.value && apiConfig.value) {
     currentModel.value = apiConfig.value.selectedModel || 'gpt-4o'
   }
@@ -450,11 +460,15 @@ watch(() => route.path, (newPath) => { activeMenu.value = newPath }, { immediate
 
 onMounted(() => {
   initializeApp()
-  document.addEventListener('keydown', handleKeydown)
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', handleKeydown)
+  }
 })
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('keydown', handleKeydown)
+  }
 })
 </script>
 

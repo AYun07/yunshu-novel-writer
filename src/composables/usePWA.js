@@ -210,25 +210,29 @@ async function checkForUpdates() {
  */
 function listenForInstallPrompt() {
   // 监听 beforeinstallprompt 事件
-  window.addEventListener('beforeinstallprompt', (e) => {
-    // 阻止默认提示
-    e.preventDefault()
-    // 保存事件以便稍后触发
-    deferredPrompt = e
-    // 标记为可安装
-    isInstallable.value = true
-    console.log('[PWA] 应用可安装')
-  })
+  try { if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // 阻止默认提示
+      e.preventDefault()
+      // 保存事件以便稍后触发
+      deferredPrompt = e
+      // 标记为可安装
+      isInstallable.value = true
+      console.log('[PWA] 应用可安装')
+    })
+  } } catch(e) {}
 
   // 监听 appinstalled 事件
-  window.addEventListener('appinstalled', () => {
-    console.log('[PWA] 应用已安装')
-    isInstalled.value = true
-    isInstallable.value = false
-    deferredPrompt = null
+  try { if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] 应用已安装')
+      isInstalled.value = true
+      isInstallable.value = false
+      deferredPrompt = null
 
-    ElMessage.success('云书已添加到您的主屏幕')
-  })
+      ElMessage.success('云书已添加到您的主屏幕')
+    })
+  } } catch(e) {}
 
   // 检查是否已安装
   if (isStandalone.value) {
@@ -293,21 +297,25 @@ function getInstallStatus() {
  */
 function listenForNetworkStatus() {
   // 在线事件
-  window.addEventListener('online', () => {
-    isOnline.value = true
-    console.log('[PWA] 网络已连接')
-    ElMessage.success('网络已连接')
+  try { if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('online', () => {
+      isOnline.value = true
+      console.log('[PWA] 网络已连接')
+      ElMessage.success('网络已连接')
 
-    // 触发后台同步
-    triggerBackgroundSync()
-  })
+      // 触发后台同步
+      triggerBackgroundSync()
+    })
+  } } catch(e) {}
 
   // 离线事件
-  window.addEventListener('offline', () => {
-    isOnline.value = false
-    console.log('[PWA] 网络已断开')
-    ElMessage.warning('您已进入离线模式，数据将在联网后自动同步')
-  })
+  try { if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('offline', () => {
+      isOnline.value = false
+      console.log('[PWA] 网络已断开')
+      ElMessage.warning('您已进入离线模式，数据将在联网后自动同步')
+    })
+  } } catch(e) {}
 }
 
 // ============================================

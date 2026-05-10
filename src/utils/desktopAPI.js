@@ -31,14 +31,27 @@
  * @returns {boolean}
  */
 function checkIsElectron() {
+  // 在非浏览器环境直接返回false
+  if (typeof globalThis === 'undefined') {
+    return false;
+  }
+  
   // 检查 window.electronAPI 是否存在（由 preload.js 注入）
-  if (typeof window !== 'undefined' && window.electronAPI) {
-    return true;
+  try {
+    if (typeof globalThis.window !== 'undefined' && globalThis.window.electronAPI) {
+      return true;
+    }
+  } catch (e) {
+    // 忽略错误
   }
   
   // 检查 process 对象（可能被禁用）
-  if (typeof process !== 'undefined' && process.versions && process.versions.electron) {
-    return true;
+  try {
+    if (typeof process !== 'undefined' && process.versions && process.versions.electron) {
+      return true;
+    }
+  } catch (e) {
+    // 忽略错误
   }
   
   return false;
@@ -1120,7 +1133,9 @@ export const app = {
   onBeforeQuit(callback) {
     if (!isElectron) {
       // Web 环境：监听 beforeunload
-      window.addEventListener('beforeunload', callback);
+      try { if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('beforeunload', callback);
+      } } catch(e) {}
       return;
     }
     

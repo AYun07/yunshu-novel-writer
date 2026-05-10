@@ -297,8 +297,8 @@ export default defineConfig(({ mode }) => {
         'marked',
         '@vueuse/core'
       ],
-      // 排除预构建的依赖
-      exclude: [],
+      // 排除预构建的依赖（有问题的包）
+      exclude: ['epub-gen-memory'],
       // 强制预构建
       force: false
     },

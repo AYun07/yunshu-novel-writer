@@ -261,8 +261,10 @@ export const FocusManager = {
    * 初始化焦点管理
    */
   init() {
-    document.addEventListener('focusin', this.handleFocusIn.bind(this), true)
-    document.addEventListener('focusout', this.handleFocusOut.bind(this), true)
+    try { if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('focusin', this.handleFocusIn.bind(this), true)
+      document.addEventListener('focusout', this.handleFocusOut.bind(this), true)
+    } } catch(e) {}
   },
 
   /**
@@ -474,7 +476,9 @@ export const KeyboardNavigation = {
   init() {
     if (this.initialized) return
     
-    document.addEventListener('keydown', this.handleKeyDown.bind(this))
+    try { if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('keydown', this.handleKeyDown.bind(this))
+    } } catch(e) {}
     this.initialized = true
     
     // 注册默认快捷键

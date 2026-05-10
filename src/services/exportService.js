@@ -5,8 +5,22 @@
  */
 
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageBreak } from 'docx'
-import Epub from 'epub-gen-memory'
 import jsPDF from 'jspdf'
+
+// epub-gen-memory 使用动态导入以避免 ESM 兼容性问题
+let EPub = null
+async function getEPub() {
+  if (!EPub) {
+    try {
+      const module = await import('epub-gen-memory')
+      EPub = module.default || module.EPub || module
+    } catch (e) {
+      console.error('加载 epub-gen-memory 失败:', e)
+      throw new Error('EPUB 导出模块加载失败')
+    }
+  }
+  return EPub
+}
 
 // ==================== 导出模板系统 ====================
 
@@ -418,7 +432,7 @@ async function exportToEpub(projectData, templateId = 'publishing', options = {}
   }
 
   // 生成 EPUB
-  const epub = new Epub(metadata, content)
+  const epub = new (await getEPub())(metadata, content)
   const buffer = await epub.genEpub()
 
   return buffer

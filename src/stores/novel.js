@@ -581,6 +581,10 @@ export const useNovelStore = defineStore('novel', () => {
     }
   }
 
+  const setGeneratingSummary = (value) => {
+    isGeneratingSummary.value = value
+  }
+
   const setArticleSummary = (summary) => {
     articleSummary.value = summary
   }

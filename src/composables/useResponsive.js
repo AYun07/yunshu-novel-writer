@@ -528,7 +528,7 @@ export function useResponsive(options = {}) {
       sidebarCollapsed.value = !sidebarCollapsed.value;
     }
 
-    if (persistSidebarState && !isMobile.value) {
+    if (persistSidebarState && !isMobile.value && typeof localStorage !== 'undefined') {
       localStorage.setItem('yunshu_sidebar_collapsed', JSON.stringify(sidebarCollapsed.value));
     }
   }
@@ -573,7 +573,9 @@ export function useResponsive(options = {}) {
    */
   function setFontScale(scale) {
     fontScale.value = Math.max(0.75, Math.min(1.5, scale));
-    localStorage.setItem('yunshu_font_scale', fontScale.value.toString());
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('yunshu_font_scale', fontScale.value.toString());
+    }
   }
 
   /**
@@ -597,7 +599,9 @@ export function useResponsive(options = {}) {
    */
   function resetFontScale() {
     fontScale.value = 1;
-    localStorage.removeItem('yunshu_font_scale');
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('yunshu_font_scale');
+    }
   }
 
   // ============================================
@@ -684,8 +688,8 @@ export function useResponsive(options = {}) {
     windowWidth.value = getWindowWidth();
     currentBreakpoint.value = getBreakpointByWidth(windowWidth.value);
 
-    // 恢复持久化状态
-    if (persistSidebarState) {
+    // 恢复持久化状态（安全检查）
+    if (persistSidebarState && typeof localStorage !== 'undefined') {
       const savedCollapsed = localStorage.getItem('yunshu_sidebar_collapsed');
       if (savedCollapsed !== null) {
         sidebarCollapsed.value = JSON.parse(savedCollapsed);
@@ -697,17 +701,29 @@ export function useResponsive(options = {}) {
       }
     }
 
-    // 添加事件监听
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', handleResize);
-      document.addEventListener('keydown', handleKeydown);
+    // 添加事件监听（安全检查）
+    try {
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('resize', handleResize);
+      }
+      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+        document.addEventListener('keydown', handleKeydown);
+      }
+    } catch (e) {
+      console.warn('[useResponsive] 添加事件监听器失败:', e)
     }
   });
 
   onUnmounted(() => {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', handleResize);
-      document.removeEventListener('keydown', handleKeydown);
+    try {
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('resize', handleResize);
+      }
+      if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+        document.removeEventListener('keydown', handleKeydown);
+      }
+    } catch (e) {
+      console.warn('[useResponsive] 移除事件监听器失败:', e)
     }
   });
 

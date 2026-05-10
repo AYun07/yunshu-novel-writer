@@ -6,7 +6,7 @@
       <MobileLayout />
     </template>
     <template v-else>
-      <DesktopLayout />
+      <router-view />
     </template>
 
     <!-- 全局同步状态提示 -->
@@ -40,7 +40,7 @@ const deviceStore = useDeviceStore()
 const { isOffline } = useOfflineStatus()
 
 // ==================== 响应式数据 ====================
-const windowWidth = ref(window.innerWidth)
+const windowWidth = ref(1024) // 默认值，在onMounted中更新
 const isMobileDevice = ref(false)
 
 // ==================== 计算属性 ====================
@@ -79,6 +79,11 @@ const platform = computed(() => {
  * 检测设备类型
  */
 const detectDevice = () => {
+  // 安全检查：确保在浏览器环境中
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+    return
+  }
+  
   const userAgent = navigator.userAgent.toLowerCase()
   const width = window.innerWidth
 
@@ -133,20 +138,22 @@ onMounted(() => {
   // 初始设备检测
   detectDevice()
 
-  // 监听窗口大小变化
-  window.addEventListener('resize', handleResize)
-
-  // 监听设备方向变化（移动端）
-  window.addEventListener('orientationchange', handleResize)
+  // 监听窗口大小变化（安全检查）
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleResize)
+  }
 
   // 初始化同步服务
   initSyncService()
 })
 
 onUnmounted(() => {
-  // 移除事件监听
-  window.removeEventListener('resize', handleResize)
-  window.removeEventListener('orientationchange', handleResize)
+  // 移除事件监听（安全检查）
+  if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+    window.removeEventListener('resize', handleResize)
+    window.removeEventListener('orientationchange', handleResize)
+  }
 })
 
 /**

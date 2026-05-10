@@ -4,6 +4,45 @@
 
 ---
 
+## [v2.4.1] - 2026-05-10
+
+### 🐛 运行时错误全面修复
+
+**核心问题修复**
+- 修复 `window.addEventListener is not a function` 错误（沙箱浏览器环境中window存在但addEventListener不是函数）
+- 修复 `setGeneratingSummary is not defined` 错误（novel.js缺少函数定义）
+- 修复 `Cannot read properties of null (reading 'value')` 错误（MegaNovelManager.vue中17处`.value`错误引用）
+- 修复 `pluginManager.getAllPlugins is not a function` 错误（PluginManager.vue导入错误）
+- 修复 `epub-gen-memory` ESM导入失败错误（改为动态导入）
+- 修复不存在的图标 `Reading` 导致组件编译失败
+
+**浏览器API安全检查（22处）**
+为以下10个文件中的所有 `addEventListener`/`removeEventListener` 调用添加安全检查：
+- composables: usePWA.js, useVirtualKeyboard.js, usePlatform.js, useResponsive.js
+- services: syncService.js
+- utils: performance.js, desktopAPI.js, accessibility.js
+- views: WritingGoals.vue, MultiViewEditor.vue, NarrativeStructure.vue, MobileWriter.vue
+
+**路由/导航修复**
+- App.vue: 将 `<DesktopLayout />` 改为 `<router-view />` 以支持子路由
+- Dashboard.vue: 修复4个菜单项index与路由路径不匹配
+  - `/ideas` → `/idea-board`
+  - `/cards` → `/index-cards`
+  - `/graph` → `/chapter-graph`
+  - `/collaboration-hub` → `/collab-team`
+
+**SSR/环境安全检查**
+- stores/apiConfig.js: localStorage安全检查
+- router/index.js: document.title安全检查
+- utils/i18n.js: document.documentElement安全检查
+
+**验证结果**
+- ✅ 26/26 页面全部正常加载
+- ✅ 所有功能板块可流畅使用
+- ✅ 无控制台错误
+
+---
+
 ## [v2.4.0] - 2026-05-10
 
 ### 🔧 构建验证与文档修正

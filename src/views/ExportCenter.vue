@@ -176,7 +176,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import exportService from '../services/exportService.js'
 const { exportToMarkdown, exportToDocx, exportToEpub, exportToPdf, batchExport, getExportHistory } = exportService
 import { ElMessage } from 'element-plus'
-import { Document, Notebook, Reading, Download, Files } from '@element-plus/icons-vue'
+import { Document, Notebook, Download, Files } from '@element-plus/icons-vue'
 import { STORAGE_KEYS } from '../utils/constants.js'
 
 // ==================== 项目数据 ====================
@@ -208,7 +208,7 @@ const maxChapters = computed(() => {
 const exportFormats = [
   { id: 'markdown', name: 'Markdown', description: '纯文本标记格式，适合发布到博客或静态网站', icon: 'Document', color: '#409eff', estimatedSize: '~120KB' },
   { id: 'docx', name: 'DOCX', description: 'Word 文档格式，适合编辑和打印', icon: 'Notebook', color: '#2b579a', estimatedSize: '~350KB' },
-  { id: 'epub', name: 'EPUB', description: '电子书格式，适合在阅读器上阅读', icon: 'Reading', color: '#67c23a', estimatedSize: '~280KB' },
+  { id: 'epub', name: 'EPUB', description: '电子书格式，适合在阅读器上阅读', icon: 'Notebook', color: '#67c23a', estimatedSize: '~280KB' },
   { id: 'pdf', name: 'PDF', description: '便携文档格式，适合分享和存档', icon: 'Download', color: '#f56c6c', estimatedSize: '~500KB' }
 ]
 const selectedFormats = ref(['markdown'])

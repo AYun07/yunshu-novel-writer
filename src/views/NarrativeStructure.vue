@@ -503,11 +503,15 @@ const startDrag = (e, idx) => {
   }
   const onUp = () => {
     dragIndex = null
-    document.removeEventListener('mousemove', onMove)
-    document.removeEventListener('mouseup', onUp)
+    try { if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    } } catch(e) {}
   }
-  document.addEventListener('mousemove', onMove)
-  document.addEventListener('mouseup', onUp)
+  try { if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  } } catch(e) {}
 }
 
 // AI分析

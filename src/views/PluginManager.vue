@@ -208,7 +208,7 @@ api.on('chapter:saved', (data) => {
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import pluginSystem from '../services/pluginSystem.js'
-const pluginManager = pluginSystem
+const pluginManager = pluginSystem.manager
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Shop, DataAnalysis, Timer, Bell, Setting, Document } from '@element-plus/icons-vue'
 

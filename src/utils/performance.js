@@ -868,15 +868,19 @@ export function initPerformanceMonitoring(options = {}) {
     if (document.readyState === 'complete') {
       initPerformanceObserver()
     } else {
-      window.addEventListener('load', initPerformanceObserver)
+      try { if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('load', initPerformanceObserver)
+      } } catch(e) {}
     }
 
     // 页面卸载时上报
-    window.addEventListener('pagehide', () => {
-      if (config.reportEnabled) {
-        reportPerformance(generatePerformanceReport())
-      }
-    })
+    try { if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('pagehide', () => {
+        if (config.reportEnabled) {
+          reportPerformance(generatePerformanceReport())
+        }
+      })
+    } } catch(e) {}
   }
 }
 

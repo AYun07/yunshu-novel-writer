@@ -771,12 +771,16 @@ function startResize(event) {
   }
 
   const handleUp = () => {
-    document.removeEventListener('mousemove', handleMove)
-    document.removeEventListener('mouseup', handleUp)
+    try { if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+      document.removeEventListener('mousemove', handleMove)
+      document.removeEventListener('mouseup', handleUp)
+    } } catch(e) {}
   }
 
-  document.addEventListener('mousemove', handleMove)
-  document.addEventListener('mouseup', handleUp)
+  try { if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('mousemove', handleMove)
+    document.addEventListener('mouseup', handleUp)
+  } } catch(e) {}
 }
 
 /**
@@ -837,7 +841,9 @@ watch(chapterSearchQuery, (val) => {
 
 onMounted(() => {
   // 监听右键菜单
-  document.addEventListener('click', hideContextMenu)
+  try { if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('click', hideContextMenu)
+  } } catch(e) {}
 
   // 默认打开一个章节
   const view = views.value[0]

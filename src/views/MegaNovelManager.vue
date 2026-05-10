@@ -1001,7 +1001,7 @@ function createProject() {
     title: '第一卷',
     description: ''
   })
-  volumes.value = megaNovelEngine.volumes.value
+  volumes.value = megaNovelEngine.volumes
   
   showNewProjectDialog.value = false
   ElMessage.success('项目创建成功')
@@ -1033,7 +1033,7 @@ function saveVolume() {
     ElMessage.success('卷已添加')
   }
   
-  volumes.value = megaNovelEngine.volumes.value
+  volumes.value = megaNovelEngine.volumes
   showAddVolumeDialog.value = false
   editingVolume.value = null
   
@@ -1061,8 +1061,8 @@ function deleteVolume(volumeId) {
     type: 'warning'
   }).then(() => {
     megaNovelEngine.deleteVolume(volumeId)
-    volumes.value = megaNovelEngine.volumes.value
-    chapters.value = megaNovelEngine.chapters.value
+    volumes.value = megaNovelEngine.volumes
+    chapters.value = megaNovelEngine.chapters
     ElMessage.success('卷已删除')
   }).catch(() => {})
 }
@@ -1085,7 +1085,7 @@ function saveChapter() {
   }
   
   megaNovelEngine.addChapter(chapterForm)
-  chapters.value = megaNovelEngine.chapters.value
+  chapters.value = megaNovelEngine.chapters
   
   showAddChapterDialog.value = false
   ElMessage.success('章节已添加')
@@ -1109,7 +1109,7 @@ function updateChapter() {
   if (!editingChapter.value) return
   
   megaNovelEngine.updateChapter(editingChapter.value.id, editingChapter.value)
-  chapters.value = megaNovelEngine.chapters.value
+  chapters.value = megaNovelEngine.chapters
   
   showEditChapterDialog.value = false
   ElMessage.success('章节已更新')
@@ -1123,7 +1123,7 @@ function deleteChapter(chapterId) {
     type: 'warning'
   }).then(() => {
     megaNovelEngine.deleteChapter(chapterId)
-    chapters.value = megaNovelEngine.chapters.value
+    chapters.value = megaNovelEngine.chapters
     ElMessage.success('章节已删除')
   }).catch(() => {})
 }
@@ -1159,7 +1159,7 @@ async function generateSingleChapter(chapter) {
     ElMessage.info(`开始生成: ${chapter.title}`)
     const context = megaNovelEngine.buildChapterContext(chapter.id)
     await megaNovelEngine.generateChapterContent(chapter.id, context)
-    chapters.value = megaNovelEngine.chapters.value
+    chapters.value = megaNovelEngine.chapters
     ElMessage.success('章节生成完成')
   } catch (error) {
     ElMessage.error('生成失败: ' + error.message)
@@ -1172,7 +1172,7 @@ async function generateSingleChapter(chapter) {
 async function checkChapterQuality(chapter) {
   try {
     const result = await megaNovelEngine.checkChapterQuality(chapter.id)
-    chapters.value = megaNovelEngine.chapters.value
+    chapters.value = megaNovelEngine.chapters
     
     if (result.result === 'pass') {
       ElMessage.success('质量检查通过')
@@ -1228,7 +1228,7 @@ async function startBatchGeneration() {
       stopOnError: false
     })
     
-    chapters.value = megaNovelEngine.chapters.value
+    chapters.value = megaNovelEngine.chapters
     ElMessage.success('批量生成完成')
   } catch (error) {
     ElMessage.error('生成中断: ' + error.message)
@@ -1319,8 +1319,8 @@ async function runFullQualityCheck() {
       }
     }
     
-    chapters.value = megaNovelEngine.chapters.value
-    reviewQueue.value = megaNovelEngine.reviewQueue.value
+    chapters.value = megaNovelEngine.chapters
+    reviewQueue.value = megaNovelEngine.reviewQueue
     
     ElMessage.success(`检查完成，发现 ${qualityIssues.value.length} 个问题`)
   } catch (error) {
@@ -1336,7 +1336,7 @@ async function runFullQualityCheck() {
 async function fixIssue(issue) {
   try {
     await megaNovelEngine.rewriteChapter(issue.chapterId, [{ type: issue.type, message: issue.message }])
-    chapters.value = megaNovelEngine.chapters.value
+    chapters.value = megaNovelEngine.chapters
     qualityIssues.value = qualityIssues.value.filter(i => i !== issue)
     ElMessage.success('已修复')
   } catch (error) {
@@ -1399,9 +1399,9 @@ function handleImportProject() {
     reader.onload = (event) => {
       const success = megaNovelEngine.importProject(event.target.result)
       if (success) {
-        currentProject.value = megaNovelEngine.currentProject.value
-        volumes.value = megaNovelEngine.volumes.value
-        chapters.value = megaNovelEngine.chapters.value
+        currentProject.value = megaNovelEngine.currentProject
+        volumes.value = megaNovelEngine.volumes
+        chapters.value = megaNovelEngine.chapters
         ElMessage.success('项目导入成功')
       } else {
         ElMessage.error('项目导入失败')
@@ -1486,7 +1486,7 @@ async function handleGenerateAllOutlines() {
     for (const volume of volumes.value) {
       await megaNovelEngine.generateVolumeOutline(volume.id, { chapterCount: 10 })
     }
-    chapters.value = megaNovelEngine.chapters.value
+    chapters.value = megaNovelEngine.chapters
     ElMessage.success('大纲生成完成')
   } catch (error) {
     ElMessage.error('大纲生成失败: ' + error.message)
@@ -1499,9 +1499,9 @@ async function handleGenerateAllOutlines() {
 
 onMounted(() => {
   // 初始化数据
-  volumes.value = megaNovelEngine.volumes.value
-  chapters.value = megaNovelEngine.chapters.value
-  currentProject.value = megaNovelEngine.currentProject.value
+  volumes.value = megaNovelEngine.volumes
+  chapters.value = megaNovelEngine.chapters
+  currentProject.value = megaNovelEngine.currentProject
   
   // 如果没有项目，显示新建对话框
   if (!currentProject.value) {
@@ -1525,7 +1525,7 @@ function loadDemoData() {
     createdAt: new Date().toISOString()
   }
   
-  megaNovelEngine.currentProject.value = currentProject.value
+  megaNovelEngine.currentProject = currentProject.value
   
   // 创建示例卷
   volumes.value = [
@@ -1533,7 +1533,7 @@ function loadDemoData() {
     { id: 'vol2', title: '第二卷：成长', description: '历练与蜕变', order: 1 },
     { id: 'vol3', title: '第三卷：高潮', description: '最终对决', order: 2 }
   ]
-  megaNovelEngine.volumes.value = volumes.value
+  megaNovelEngine.volumes = volumes.value
   
   // 创建示例章节
   chapters.value = [
@@ -1544,7 +1544,7 @@ function loadDemoData() {
     { id: 'ch5', volumeId: 'vol2', title: '第五章 危机四伏', outline: '陷入困境', content: '', wordCount: 0, status: 'todo', order: 4 },
     { id: 'ch6', volumeId: 'vol3', title: '第六章 最终对决', outline: '与反派的决战', content: '', wordCount: 0, status: 'todo', order: 5 }
   ]
-  megaNovelEngine.chapters.value = chapters.value
+  megaNovelEngine.chapters = chapters.value
   
   // 设置进度
   megaNovelEngine.progress.totalWords = 3200

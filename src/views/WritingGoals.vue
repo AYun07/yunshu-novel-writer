@@ -757,11 +757,13 @@ onMounted(() => {
   loadGoals()
   
   // 监听localStorage变化
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'writingGoals') {
-      loadGoals()
-    }
-  })
+  try { if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'writingGoals') {
+        loadGoals()
+      }
+    })
+  } } catch(e) {}
 })
 </script>
 

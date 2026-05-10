@@ -613,19 +613,25 @@ export function useVirtualKeyboard(options = {}) {
     }
 
     // 监听窗口大小变化（降级方案）
-    window.addEventListener('resize', handleResize);
+    try { if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('resize', handleResize);
+    } } catch(e) {}
 
     // 监听输入框聚焦/失焦
-    document.addEventListener('focusin', handleFocus);
-    document.addEventListener('focusout', handleBlur);
+    try { if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('focusin', handleFocus);
+      document.addEventListener('focusout', handleBlur);
+    } } catch(e) {}
 
     // 监听键盘事件（辅助检测）
-    document.addEventListener('keydown', (e) => {
-      // Tab 键切换输入框时调整布局
-      if (e.key === 'Tab' && isInputElement(e.target)) {
-        setTimeout(() => scrollToInput(e.target), 100);
-      }
-    });
+    try { if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('keydown', (e) => {
+        // Tab 键切换输入框时调整布局
+        if (e.key === 'Tab' && isInputElement(e.target)) {
+          setTimeout(() => scrollToInput(e.target), 100);
+        }
+      });
+    } } catch(e) {}
   });
 
   onUnmounted(() => {
@@ -636,9 +642,13 @@ export function useVirtualKeyboard(options = {}) {
       window.visualViewport.removeEventListener('scroll', handleVisualViewportChange);
     }
 
-    window.removeEventListener('resize', handleResize);
-    document.removeEventListener('focusin', handleFocus);
-    document.removeEventListener('focusout', handleBlur);
+    try { if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+      window.removeEventListener('resize', handleResize);
+    } } catch(e) {}
+    try { if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+      document.removeEventListener('focusin', handleFocus);
+      document.removeEventListener('focusout', handleBlur);
+    } } catch(e) {}
   });
 
   // ============================================

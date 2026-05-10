@@ -246,6 +246,7 @@ export function useSync(options = {}) {
    */
   const saveHistory = () => {
     try {
+      if (typeof localStorage === 'undefined') return
       localStorage.setItem('yunshu_sync_history', JSON.stringify(syncHistory.value))
     } catch (error) {
       console.error('保存同步历史失败:', error)
@@ -257,6 +258,7 @@ export function useSync(options = {}) {
    */
   const loadHistory = () => {
     try {
+      if (typeof localStorage === 'undefined') return
       const stored = localStorage.getItem('yunshu_sync_history')
       if (stored) {
         syncHistory.value = JSON.parse(stored)
@@ -272,7 +274,9 @@ export function useSync(options = {}) {
    */
   const clearHistory = () => {
     syncHistory.value = []
-    localStorage.removeItem('yunshu_sync_history')
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('yunshu_sync_history')
+    }
   }
 
   /**
@@ -646,8 +650,14 @@ export function useAutoSync(options = {}) {
  * @returns {object} 离线状态相关的状态和方法
  */
 export function useOfflineStatus() {
-  const isOffline = ref(!navigator.onLine)
+  // 安全获取初始离线状态
+  const isOffline = ref(false)
   const wasOffline = ref(false)
+  
+  // 在客户端初始化真实状态
+  if (typeof navigator !== 'undefined') {
+    isOffline.value = !navigator.onLine
+  }
 
   /**
    * 处理网络恢复
@@ -671,13 +681,27 @@ export function useOfflineStatus() {
   }
 
   onMounted(() => {
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
+    // 安全检查：确保在浏览器环境中且window.addEventListener存在
+    try {
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('online', handleOnline)
+        window.addEventListener('offline', handleOffline)
+      }
+    } catch (e) {
+      console.warn('无法添加网络状态监听器:', e)
+    }
   })
 
   onUnmounted(() => {
-    window.removeEventListener('online', handleOnline)
-    window.removeEventListener('offline', handleOffline)
+    // 安全检查：确保在浏览器环境中且window.removeEventListener存在
+    try {
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('online', handleOnline)
+        window.removeEventListener('offline', handleOffline)
+      }
+    } catch (e) {
+      // 忽略错误
+    }
   })
 
   return {

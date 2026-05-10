@@ -130,7 +130,9 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  document.title = to.meta.title ? `${to.meta.title} - 云书` : '云书 - AI辅助写作工具'
+  if (typeof document !== 'undefined') {
+    document.title = to.meta.title ? `${to.meta.title} - 云书` : '云书 - AI辅助写作工具'
+  }
 })
 
 export default router

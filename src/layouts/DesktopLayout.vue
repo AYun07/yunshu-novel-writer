@@ -530,8 +530,10 @@ function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value;
   emit('collapse-change', isCollapsed.value);
 
-  // 保存折叠状态到本地存储
-  localStorage.setItem('yunshu_sidebar_collapsed', JSON.stringify(isCollapsed.value));
+  // 保存折叠状态到本地存储（安全检查）
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('yunshu_sidebar_collapsed', JSON.stringify(isCollapsed.value));
+  }
 }
 
 /**
@@ -544,15 +546,17 @@ function handleResizeStart(event) {
   resizeStartX = event.type.includes('touch') ? event.touches[0].clientX : event.clientX;
   resizeStartWidth = currentSidebarWidth.value;
 
-  // 添加全局事件监听
-  document.addEventListener('mousemove', handleResizeMove);
-  document.addEventListener('mouseup', handleResizeEnd);
-  document.addEventListener('touchmove', handleResizeMove);
-  document.addEventListener('touchend', handleResizeEnd);
+  // 添加全局事件监听（安全检查）
+  if (typeof document !== 'undefined') {
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    document.addEventListener('touchmove', handleResizeMove);
+    document.addEventListener('touchend', handleResizeEnd);
 
-  // 禁用文本选择
-  document.body.style.userSelect = 'none';
-  document.body.style.cursor = 'col-resize';
+    // 禁用文本选择
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+  }
 }
 
 /**
@@ -586,18 +590,22 @@ function handleResizeMove(event) {
 function handleResizeEnd() {
   isResizing.value = false;
 
-  // 移除全局事件监听
-  document.removeEventListener('mousemove', handleResizeMove);
-  document.removeEventListener('mouseup', handleResizeEnd);
-  document.removeEventListener('touchmove', handleResizeMove);
-  document.removeEventListener('touchend', handleResizeEnd);
+  // 移除全局事件监听（安全检查）
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    document.removeEventListener('touchmove', handleResizeMove);
+    document.removeEventListener('touchend', handleResizeEnd);
 
-  // 恢复文本选择
-  document.body.style.userSelect = '';
-  document.body.style.cursor = '';
+    // 恢复文本选择
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+  }
 
-  // 保存宽度到本地存储
-  localStorage.setItem('yunshu_sidebar_width', currentSidebarWidth.value.toString());
+  // 保存宽度到本地存储（安全检查）
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('yunshu_sidebar_width', currentSidebarWidth.value.toString());
+  }
 }
 
 /**
@@ -618,6 +626,8 @@ function handleSettingsClick() {
  * 切换全屏
  */
 function toggleFullscreen() {
+  if (typeof document === 'undefined') return;
+  
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().then(() => {
       isFullscreen.value = true;
@@ -666,23 +676,30 @@ function handleFullscreenChange() {
 // ============================================
 
 onMounted(() => {
-  // 恢复侧边栏状态
-  const savedCollapsed = localStorage.getItem('yunshu_sidebar_collapsed');
-  if (savedCollapsed !== null) {
-    isCollapsed.value = JSON.parse(savedCollapsed);
+  // 恢复侧边栏状态（安全检查）
+  if (typeof localStorage !== 'undefined') {
+    const savedCollapsed = localStorage.getItem('yunshu_sidebar_collapsed');
+    if (savedCollapsed !== null) {
+      isCollapsed.value = JSON.parse(savedCollapsed);
+    }
+
+    const savedWidth = localStorage.getItem('yunshu_sidebar_width');
+    if (savedWidth !== null) {
+      currentSidebarWidth.value = parseInt(savedWidth, 10);
+    }
   }
 
-  const savedWidth = localStorage.getItem('yunshu_sidebar_width');
-  if (savedWidth !== null) {
-    currentSidebarWidth.value = parseInt(savedWidth, 10);
+  // 监听全屏变化（安全检查）
+  if (typeof document !== 'undefined') {
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
   }
-
-  // 监听全屏变化
-  document.addEventListener('fullscreenchange', handleFullscreenChange);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  // 移除全屏监听（安全检查）
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }
 });
 
 // ============================================

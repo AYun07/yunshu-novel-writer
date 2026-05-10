@@ -70,10 +70,13 @@ const handleReload = () => {
 onErrorCaptured((error, instance, info) => {
   console.error('[ErrorBoundary] 捕获到错误:', error)
   console.error('[ErrorBoundary] 错误信息:', info)
+  console.error('[ErrorBoundary] 错误堆栈:', error?.stack)
+  console.error('[ErrorBoundary] 错误名称:', error?.name)
+  console.error('[ErrorBoundary] 错误消息:', error?.message)
 
   hasError.value = true
-  errorMessage.value = error.message || '发生未知错误'
-  errorStack.value = error.stack || ''
+  errorMessage.value = error?.message || info || '发生未知错误'
+  errorStack.value = error?.stack || ''
 
   // 显示错误提示
   ElMessage.error('应用发生错误，请重试')

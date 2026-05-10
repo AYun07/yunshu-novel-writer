@@ -25,6 +25,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
 
   const initializeApiConfig = () => {
     try {
+      if (typeof localStorage === 'undefined') return
       const saved = localStorage.getItem(STORAGE_KEYS.API_CONFIG)
       if (saved) {
         const config = JSON.parse(saved)
@@ -44,7 +45,9 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
 
   const updateApiConfig = (config) => {
     apiConfig.value = { ...apiConfig.value, ...config }
-    localStorage.setItem(STORAGE_KEYS.API_CONFIG, JSON.stringify(apiConfig.value))
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.API_CONFIG, JSON.stringify(apiConfig.value))
+    }
     apiService.updateConfig(apiConfig.value)
     isApiConfigured.value = !!apiConfig.value.apiKey
   }

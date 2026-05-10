@@ -632,23 +632,31 @@ export function usePlatform() {
 
   onMounted(() => {
     if (typeof window !== 'undefined') {
-      window.addEventListener('resize', handleResize);
-      window.addEventListener('orientationchange', handleOrientationChange);
+      try { if (typeof window.addEventListener === 'function') {
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleOrientationChange);
+      } } catch(e) {}
 
       // 监听屏幕方向变化（现代浏览器）
       if (screen.orientation) {
-        screen.orientation.addEventListener('change', handleOrientationChange);
+        try { if (typeof screen.orientation.addEventListener === 'function') {
+          screen.orientation.addEventListener('change', handleOrientationChange);
+        } } catch(e) {}
       }
     }
   });
 
   onUnmounted(() => {
     if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleOrientationChange);
+      try { if (typeof window.removeEventListener === 'function') {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleOrientationChange);
+      } } catch(e) {}
 
       if (screen.orientation) {
-        screen.orientation.removeEventListener('change', handleOrientationChange);
+        try { if (typeof screen.orientation.removeEventListener === 'function') {
+          screen.orientation.removeEventListener('change', handleOrientationChange);
+        } } catch(e) {}
       }
     }
   });
