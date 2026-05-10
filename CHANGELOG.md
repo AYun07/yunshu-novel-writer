@@ -4,6 +4,59 @@
 
 ---
 
+## [v2.5.0] - 2026-05-10
+
+### 📱 Capacitor 移动端集成
+
+**新增功能**
+- 集成 Capacitor 框架，支持 Android 和 iOS 原生应用构建
+- 添加 @capacitor/app、@capacitor/haptics、@capacitor/keyboard、@capacitor/status-bar 等原生插件
+- 添加 @capacitor/filesystem、@capacitor/share、@capacitor/splash-screen、@capacitor/network、@capacitor/push-notifications 插件
+- 创建 capacitor.config.ts 配置文件（闪屏、状态栏、键盘适配等）
+- 添加 Android 和 iOS 平台项目
+
+**构建脚本**
+- 新增 `build:app`、`cap:sync`、`cap:android`、`cap:ios` 等 Capacitor 构建脚本
+- 新增 `build:android:apk`、`build:android:aab`、`build:android:release` Android 打包脚本
+- 新增 `cap:open:android`、`cap:open:ios` IDE 打开脚本
+
+**Electron 修复**
+- 修复开发服务器端口不一致（5173 -> 7520，与 vite.config.js 统一）
+- 修复 Electron ESM 兼容性问题（electron/ 目录下文件重命名为 .cjs 扩展名）
+- 修复 copyright 年份（2024 -> 2026）
+
+**构建配置**
+- vite.config.js: 生产构建 base 改为 `/`（Capacitor 需要），开发时保持 `./`（Electron 需要）
+- vite.config.js: 添加 `__CAPACITOR__` 环境变量用于运行时平台检测
+- vite.config.js: `__APP_VERSION__` 版本号更新为 2.5.0
+
+**版本更新**
+- manifest.json info.version 更新为 2.5.0
+- sw.js CACHE_VERSION 更新为 v2.5.0
+
+### 🌐 浏览器兼容性适配
+
+**browserslist 更新**
+- 扩展浏览器支持范围：新增 Firefox ESR、iOS >= 15、Android >= 10、Samsung >= 12、Edge >= 90、UCAndroid >= 13
+
+**CSS 兼容性**
+- 添加 autoprefixer 依赖，在 vite.config.js 中配置 PostCSS 自动添加 CSS 厂商前缀
+- 确保样式在 Firefox、Safari、Samsung Internet、UC Browser 等浏览器中正确渲染
+
+**Termux 适配**
+- usePlatform.js 新增 Termux 环境检测（通过 User-Agent 中的 Termux 关键字）
+- Termux 环境中自动禁用 File System Access API 等不兼容的 Web API
+- 新增 `isTermux`、`hasFileSystemAccess` 计算属性和 `supports('fileSystemAccess')` 特性检测
+- uiRecommendations 新增 `enableFileSystemAccess` 和 `enableAdvancedWebAPI` 适配建议
+
+**Edge 浏览器适配**
+- desktopAPI.js 新增 `detectBrowser()` 浏览器检测函数，支持 Edge/Chrome/Firefox/Safari 识别
+- Edge（基于 Chromium）通过 UA 中的 `Edg/` 关键字优先检测，避免误判为 Chrome
+- 导出 `browserInfo` 对象，包含浏览器名称、版本、是否 Chromium 内核等信息
+- `system.getPlatform()` 新增 Android 和 iOS 平台检测，完善跨平台识别
+
+---
+
 ## [v2.4.1] - 2026-05-10
 
 ### 🐛 运行时错误全面修复

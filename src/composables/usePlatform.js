@@ -139,6 +139,18 @@ function detectWebView() {
 }
 
 /**
+ * 检测是否在 Termux 环境中运行
+ * Termux 是 Android 上的终端模拟器，部分 Web API 不兼容
+ * @returns {boolean}
+ */
+function detectTermux() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+
+  const ua = navigator.userAgent.toLowerCase();
+  return /termux/i.test(ua);
+}
+
+/**
  * 检测设备类型
  * @returns {Object} 设备信息
  */
@@ -250,16 +262,22 @@ function detectCapabilities() {
   // 地理位置 API
   const hasGeolocation = 'geolocation' in navigator;
 
+  // File System Access API（Termux 环境不支持）
+  const isTermuxEnv = detectTermux();
+  const hasFileSystemAccess = !isTermuxEnv && 'showOpenFilePicker' in window;
+
   return {
     hasTouch,
     hasPointer,
     hasMouse,
     hasKeyboard,
     hasVibration,
+    hasFileSystemAccess,
     hasBattery,
     hasNetworkInfo,
     hasDeviceOrientation,
     hasGeolocation,
+    hasFileSystemAccess,
   };
 }
 
@@ -352,6 +370,7 @@ export function usePlatform() {
   const isElectronEnv = detectElectron();
   const isPWAEnv = detectPWA();
   const isWebViewEnv = detectWebView();
+  const isTermuxEnv = detectTermux();
 
   // ============================================
   // 计算属性
@@ -390,6 +409,12 @@ export function usePlatform() {
 
   /** 是否 WebView */
   const isWebView = computed(() => isWebViewEnv);
+
+  /** 是否 Termux 环境 */
+  const isTermux = computed(() => isTermuxEnv);
+
+  /** 是否支持 File System Access API */
+  const hasFileSystemAccess = computed(() => capabilities.hasFileSystemAccess);
 
   /** 是否触摸设备 */
   const hasTouch = computed(() => capabilities.hasTouch);
@@ -475,6 +500,7 @@ export function usePlatform() {
     if (hasMouse.value) classes.push('has-mouse');
     if (isIOS.value) classes.push('is-ios');
     if (isAndroid.value) classes.push('is-android');
+    if (isTermux.value) classes.push('is-termux');
 
     return classes.join(' ');
   });
@@ -517,6 +543,12 @@ export function usePlatform() {
 
       // 是否启用虚拟键盘处理
       handleVirtualKeyboard: isMobile.value || isTablet.value,
+
+      // Termux 环境适配
+      // Termux 不支持 File System Access API，禁用相关功能
+      enableFileSystemAccess: capabilities.hasFileSystemAccess,
+      // Termux 中禁用不兼容的 Web API（如 wakeLock、bluetooth 等）
+      enableAdvancedWebAPI: !isTermuxEnv,
     };
 
     return recs;
@@ -561,6 +593,7 @@ export function usePlatform() {
       bluetooth: 'bluetooth' in navigator,
       usb: 'usb' in navigator,
       serial: 'serial' in navigator,
+      fileSystemAccess: capabilities.hasFileSystemAccess,
     };
 
     return featureMap[feature] || false;
@@ -679,6 +712,7 @@ export function usePlatform() {
     isElectron,
     isPWA,
     isWebView,
+    isTermux,
 
     // 操作系统
     isIOS,

@@ -27,6 +27,96 @@
 // ============================================
 
 /**
+ * 检测浏览器类型和版本
+ * @returns {Object} 浏览器信息 { name, version, isChromium, isEdge, isChrome, isFirefox, isSafari }
+ */
+function detectBrowser() {
+  if (typeof navigator === 'undefined') {
+    return {
+      name: 'unknown',
+      version: '0',
+      isChromium: false,
+      isEdge: false,
+      isChrome: false,
+      isFirefox: false,
+      isSafari: false,
+    };
+  }
+
+  const ua = navigator.userAgent;
+
+  // Edge 基于 Chromium，UA 中包含 "Edg/" 关键字
+  // 注意：必须先检测 Edge，因为 Edge UA 也包含 "Chrome"
+  const edgeMatch = ua.match(/Edg\/(\d+(\.\d+)*)/);
+  if (edgeMatch) {
+    return {
+      name: 'edge',
+      version: edgeMatch[1],
+      isChromium: true,
+      isEdge: true,
+      isChrome: false,
+      isFirefox: false,
+      isSafari: false,
+    };
+  }
+
+  // Chrome 浏览器（排除 Edge、Opera 等）
+  const chromeMatch = ua.match(/Chrome\/(\d+(\.\d+)*)/);
+  if (chromeMatch && !/Edg|OPR|Brave/.test(ua)) {
+    return {
+      name: 'chrome',
+      version: chromeMatch[1],
+      isChromium: true,
+      isEdge: false,
+      isChrome: true,
+      isFirefox: false,
+      isSafari: false,
+    };
+  }
+
+  // Firefox
+  const firefoxMatch = ua.match(/Firefox\/(\d+(\.\d+)*)/);
+  if (firefoxMatch) {
+    return {
+      name: 'firefox',
+      version: firefoxMatch[1],
+      isChromium: false,
+      isEdge: false,
+      isChrome: false,
+      isFirefox: true,
+      isSafari: false,
+    };
+  }
+
+  // Safari
+  const safariMatch = ua.match(/Version\/(\d+(\.\d+)*)/);
+  if (safariMatch && /Safari/.test(ua) && !/Chrome/.test(ua)) {
+    return {
+      name: 'safari',
+      version: safariMatch[1],
+      isChromium: false,
+      isEdge: false,
+      isChrome: false,
+      isFirefox: false,
+      isSafari: true,
+    };
+  }
+
+  return {
+    name: 'unknown',
+    version: '0',
+    isChromium: false,
+    isEdge: false,
+    isChrome: false,
+    isFirefox: false,
+    isSafari: false,
+  };
+}
+
+/** @type {Object} 当前浏览器信息 */
+export const browserInfo = detectBrowser();
+
+/**
  * 检测是否在 Electron 环境中运行
  * @returns {boolean}
  */
@@ -300,10 +390,14 @@ export const system = {
       const ua = navigator.userAgent.toLowerCase();
       if (ua.includes('mac')) return 'darwin';
       if (ua.includes('win')) return 'win32';
+      // Edge (Chromium) 在 Android 上 UA 包含 "android" 而非 "linux"
+      if (ua.includes('android')) return 'android';
       if (ua.includes('linux')) return 'linux';
+      // iOS / iPad
+      if (/iphone|ipad|ipod/.test(ua)) return 'ios';
       return 'web';
     }
-    
+
     return window.electronAPI.system.getPlatform();
   },
   
@@ -1194,6 +1288,9 @@ export const menu = {
 export const desktopAPI = {
   // 环境标识
   isElectron,
+
+  // 浏览器信息
+  browserInfo,
   
   // 各模块 API
   fileSystem,

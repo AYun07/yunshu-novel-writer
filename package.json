@@ -6,7 +6,7 @@
   "license": "MIT",
   "private": true,
   "type": "module",
-  "main": "electron/main.js",
+  "main": "electron/main.cjs",
   "homepage": ".",
   "scripts": {
     "dev": "vite",
@@ -16,7 +16,7 @@
     "build:electron:mac": "vite build && electron-builder --mac",
     "build:electron:linux": "vite build && electron-builder --linux",
     "preview": "vite preview",
-    "electron": "wait-on http://localhost:5173 && electron .",
+    "electron": "wait-on http://localhost:7520 && electron .",
     "electron:dev": "concurrently \"npm run dev\" \"npm run electron\"",
     "electron:pack": "electron-builder --dir",
     "electron:build": "npm run build && electron-builder",
@@ -28,17 +28,49 @@
     "format": "prettier --write src/",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "build:app": "vite build",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:android": "npm run build && npx cap sync android",
+    "cap:ios": "npm run build && npx cap sync ios",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios",
+    "build:android:apk": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug",
+    "build:android:aab": "npm run build && npx cap sync android && cd android && ./gradlew bundleRelease",
+    "build:android:release": "npm run build && npx cap sync android && cd android && ./gradlew assembleRelease"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/keyboard": "^8.0.3",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/push-notifications": "^8.0.4",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@element-plus/icons-vue": "^2.3.1",
+    "@vue-flow/background": "^1.3.2",
+    "@vue-flow/controls": "^1.1.3",
+    "@vue-flow/core": "^1.48.2",
     "@vueuse/core": "^10.7.2",
+    "autoprefixer": "^10.4.17",
+    "@wangeditor/editor": "^5.1.23",
+    "@wangeditor/editor-for-vue": "^5.1.12",
     "axios": "^1.6.5",
     "dayjs": "^1.11.10",
+    "dexie": "^4.4.2",
+    "diff-match-patch": "^1.0.5",
+    "docx": "^9.6.1",
     "echarts": "^5.4.3",
     "element-plus": "^2.5.1",
+    "epub-gen-memory": "^1.1.2",
+    "highlight.js": "^11.11.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
     "lodash-es": "^4.17.21",
+    "lz-string": "^1.5.0",
     "mammoth": "^1.6.0",
     "marked": "^11.1.1",
     "pinia": "^2.1.7",
@@ -48,12 +80,16 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.3.3",
+    "@capacitor/cli": "^8.3.3",
+    "@capacitor/core": "^8.3.3",
+    "@capacitor/ios": "^8.3.3",
     "@rushstack/eslint-patch": "^1.6.1",
     "@tsconfig/node18": "^18.2.2",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^20.11.5",
     "@vitejs/plugin-vue": "^5.0.3",
-    "@vue/eslint-config-prettier": "^9.1.0",
+    "@vue/eslint-config-prettier": "^10.0.0",
     "@vue/eslint-config-typescript": "^12.0.0",
     "@vue/tsconfig": "^0.5.1",
     "concurrently": "^8.2.2",
@@ -77,7 +113,7 @@
   "build": {
     "appId": "com.yunshu.app",
     "productName": "云书",
-    "copyright": "Copyright © 2024 云书团队",
+    "copyright": "Copyright © 2026 云书团队",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -101,11 +137,16 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "ia32"]
+          "arch": [
+            "x64",
+            "ia32"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "public/icon.ico",
@@ -128,11 +169,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "icon": "public/icon.icns",
@@ -164,19 +211,27 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "deb",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "rpm",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "tar.gz",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "public/icons",
@@ -202,7 +257,13 @@
     "> 1%",
     "last 2 versions",
     "not dead",
-    "not ie 11"
+    "not ie 11",
+    "Firefox ESR",
+    "iOS >= 15",
+    "Android >= 10",
+    "Samsung >= 12",
+    "Edge >= 90",
+    "UCAndroid >= 13"
   ],
   "keywords": [
     "小说",

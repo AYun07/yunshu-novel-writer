@@ -27,6 +27,7 @@ declare global {
   const accessibility: typeof import('./src/utils/accessibility.js')['default']
   const app: typeof import('./src/utils/desktopAPI.js')['app']
   const autoUpdate: typeof import('./src/utils/desktopAPI.js')['autoUpdate']
+  const browserInfo: typeof import('./src/utils/desktopAPI.js')['browserInfo']
   const clipboard: typeof import('./src/utils/desktopAPI.js')['clipboard']
   const computed: typeof import('vue')['computed']
   const createApp: typeof import('vue')['createApp']

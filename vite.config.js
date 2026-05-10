@@ -9,6 +9,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { resolve } from 'path'
+import autoprefixer from 'autoprefixer'
 
 // ============================================
 // 路径解析
@@ -24,9 +25,12 @@ export default defineConfig(({ mode }) => {
   // 是否为生产环境
   const isProduction = mode === 'production'
 
+  // Capacitor 兼容性：生产构建时 base 为 '/'，开发时为 './'（Electron 需要）
+  const base = isProduction ? '/' : './'
+
   return {
     // 基础路径
-    base: './',
+    base,
 
     // ============================================
     // 插件配置
@@ -276,6 +280,12 @@ export default defineConfig(({ mode }) => {
           additionalData: `@import "@/styles/variables.scss";`
         }
       },
+      // PostCSS 插件配置（CSS 兼容性前缀）
+      postcss: {
+        plugins: [
+          autoprefixer(),
+        ],
+      },
       // 开发时启用 Source Map
       devSourcemap: !isProduction
     },
@@ -332,8 +342,9 @@ export default defineConfig(({ mode }) => {
     // 定义环境变量
     // ============================================
     define: {
-      __APP_VERSION__: JSON.stringify('2.0.0'),
-      __BUILD_TIME__: JSON.stringify(new Date().toISOString())
+      __APP_VERSION__: JSON.stringify('2.5.0'),
+      __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+      __CAPACITOR__: JSON.stringify(isProduction),
     }
   }
 })

@@ -20,7 +20,7 @@
 // 版本配置
 // ============================================
 
-const CACHE_VERSION = 'v2.1.0'
+const CACHE_VERSION = 'v2.5.0'
 const CACHE_NAME = `yunshu-cache-${CACHE_VERSION}`
 const DYNAMIC_CACHE_NAME = `yunshu-dynamic-${CACHE_VERSION}`
 const IMAGE_CACHE_NAME = `yunshu-images-${CACHE_VERSION}`
