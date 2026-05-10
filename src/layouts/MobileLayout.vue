@@ -41,6 +41,9 @@
     >
       <span class="quick-action-icon">✏️</span>
     </button>
+    
+    <!-- 更新提示弹窗 -->
+    <UpdateDialog />
   </div>
 </template>
 
@@ -59,6 +62,7 @@
 import { ref, computed, onMounted, onUnmounted, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDeviceStore } from '../stores/device.js'
+import UpdateDialog from '../components/UpdateDialog.vue'
 
 // ==================== 路由和状态 ====================
 const route = useRoute()

@@ -86,6 +86,7 @@ declare module 'vue' {
     SyncStatus: typeof import('./src/components/SyncStatus.vue')['default']
     SyncToast: typeof import('./src/components/SyncToast.vue')['default']
     TemplateManager: typeof import('./src/components/TemplateManager.vue')['default']
+    UpdateDialog: typeof import('./src/components/UpdateDialog.vue')['default']
     WriterChapterPanel: typeof import('./src/components/writer/WriterChapterPanel.vue')['default']
     WriterCharacterPanel: typeof import('./src/components/writer/WriterCharacterPanel.vue')['default']
     WriterCorpusPanel: typeof import('./src/components/writer/WriterCorpusPanel.vue')['default']
