@@ -1,20 +1,34 @@
 /**
- * 云书 - Service Worker (PWA离线支持)
- * 提供静态资源缓存、API请求策略、离线回退、后台同步等功能
+ * 云书 - Service Worker (PWA离线支持增强版)
+ * 提供静态资源缓存、API请求策略、离线回退、后台同步、推送通知等功能
  * 
  * 缓存策略：
- * - 静态资源：缓存优先（Cache First）
- * - API请求：网络优先（Network First）
- * - 图片资源：缓存优先 + 网络更新
+ * - 静态资源：Stale-While-Revalidate（先返回缓存，后台更新）
+ * - API请求：网络优先（Network First）+ 失败回退缓存
+ * - 图片资源：缓存优先 + 后台更新
+ * - 字体文件：缓存优先（长期缓存）
+ * 
+ * 新增功能：
+ * - 周期性后台同步（Periodic Background Sync）
+ * - 后台同步（Background Sync）
+ * - 推送通知（Push API）
+ * - 缓存清理策略
+ * - 更新提示和自动刷新
  */
 
 // ============================================
 // 版本配置
 // ============================================
 
-const CACHE_VERSION = 'v2.0.0'
+const CACHE_VERSION = 'v2.1.0'
 const CACHE_NAME = `yunshu-cache-${CACHE_VERSION}`
 const DYNAMIC_CACHE_NAME = `yunshu-dynamic-${CACHE_VERSION}`
+const IMAGE_CACHE_NAME = `yunshu-images-${CACHE_VERSION}`
+const FONT_CACHE_NAME = `yunshu-fonts-${CACHE_VERSION}`
+
+// 最大缓存大小限制（MB）
+const MAX_CACHE_SIZE = 100
+const MAX_CACHE_AGE = 30 * 24 * 60 * 60 * 1000 // 30天
 
 // ============================================
 // 预缓存资源列表
@@ -25,28 +39,30 @@ const PRECACHE_URLS = [
   '/',
   '/index.html',
 
-  // 样式文件（构建后自动添加）
-  // '/assets/index.css',
-
-  // 脚本文件（构建后自动添加）
-  // '/assets/index.js',
+  // 离线页面
+  '/offline.html',
 
   // 图标
   '/favicon.svg',
-
-  // 离线页面
-  '/offline.html'
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/maskable-icon-192x192.png',
 ]
 
 // ============================================
 // 缓存策略配置
 // ============================================
 
-// 需要缓存优先的静态资源类型
-const CACHE_FIRST_PATTERNS = [
-  /\.(?:js|css|woff2?|ttf|eot)$/,
+// Stale-While-Revalidate 策略的资源类型
+const STALE_WHILE_REVALIDATE_PATTERNS = [
+  /\.(?:js|css)$/,
   /\/assets\//,
-  /\/static\//
+  /\/static\//,
+]
+
+// 缓存优先的静态资源（长期不变）
+const CACHE_FIRST_PATTERNS = [
+  /\.(?:woff2?|ttf|eot|otf)$/,
 ]
 
 // 需要网络优先的API路径
@@ -54,12 +70,20 @@ const NETWORK_FIRST_PATTERNS = [
   /\/api\//,
   /\/v1\//,
   /\/chat\//,
-  /\/completions\//
+  /\/completions\//,
 ]
 
 // 图片资源
 const IMAGE_PATTERNS = [
-  /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/
+  /\.(?:png|jpg|jpeg|svg|gif|webp|ico|bmp)$/,
+  /\/images\//,
+  /\/screenshots\//,
+]
+
+// 字体资源
+const FONT_PATTERNS = [
+  /\.(?:woff2?|ttf|eot|otf)$/,
+  /\/fonts\//,
 ]
 
 // 不缓存的资源
@@ -67,7 +91,9 @@ const NO_CACHE_PATTERNS = [
   /\/sockjs-node\//,
   /\/__webpack_hmr/,
   /chrome-extension:\/\//,
-  /\/hot-update\./
+  /\/hot-update\./,
+  /\/sw\.js$/,
+  /\.map$/,
 ]
 
 // ============================================
@@ -114,13 +140,19 @@ self.addEventListener('activate', (event) => {
               // 删除旧版本的缓存
               return name.startsWith('yunshu-') && 
                      name !== CACHE_NAME && 
-                     name !== DYNAMIC_CACHE_NAME
+                     name !== DYNAMIC_CACHE_NAME &&
+                     name !== IMAGE_CACHE_NAME &&
+                     name !== FONT_CACHE_NAME
             })
             .map((name) => {
               console.log('[Service Worker] 删除旧缓存:', name)
               return caches.delete(name)
             })
         )
+      })
+      .then(() => {
+        // 清理过期缓存
+        return cleanupExpiredCache()
       })
       .then(() => {
         console.log('[Service Worker] 激活完成')
@@ -155,18 +187,21 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 根据请求类型选择缓存策略
-  if (isCacheFirst(request)) {
-    // 缓存优先策略（静态资源）
-    event.respondWith(cacheFirst(request))
+  if (isStaleWhileRevalidate(request)) {
+    // Stale-While-Revalidate 策略（静态资源）
+    event.respondWith(staleWhileRevalidate(request))
+  } else if (isCacheFirst(request)) {
+    // 缓存优先策略（字体文件）
+    event.respondWith(cacheFirst(request, FONT_CACHE_NAME))
   } else if (isNetworkFirst(request)) {
     // 网络优先策略（API请求）
     event.respondWith(networkFirst(request))
   } else if (isImageRequest(request)) {
     // 图片缓存策略
-    event.respondWith(cacheFirstWithUpdate(request))
+    event.respondWith(imageCacheStrategy(request))
   } else {
-    // 默认：网络优先
-    event.respondWith(networkFirst(request))
+    // 默认：Stale-While-Revalidate
+    event.respondWith(staleWhileRevalidate(request))
   }
 })
 
@@ -189,6 +224,16 @@ function shouldSkipCache(request) {
 
   // 匹配不缓存的模式
   return NO_CACHE_PATTERNS.some(pattern => pattern.test(url))
+}
+
+/**
+ * 判断是否使用 Stale-While-Revalidate 策略
+ * @param {Request} request - 请求对象
+ * @returns {boolean} 是否使用
+ */
+function isStaleWhileRevalidate(request) {
+  const url = request.url
+  return STALE_WHILE_REVALIDATE_PATTERNS.some(pattern => pattern.test(url))
 }
 
 /**
@@ -222,32 +267,74 @@ function isImageRequest(request) {
 }
 
 /**
- * 缓存优先策略
- * 先从缓存获取，缓存不存在则从网络获取并缓存
+ * Stale-While-Revalidate 策略
+ * 立即返回缓存（如果存在），同时在后台更新缓存
  * @param {Request} request - 请求对象
  * @returns {Promise<Response>} 响应
  */
-async function cacheFirst(request) {
-  const cachedResponse = await caches.match(request)
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME)
+  const cachedResponse = await cache.match(request)
+
+  // 后台更新函数
+  const fetchAndCache = async () => {
+    try {
+      const networkResponse = await fetch(request)
+      if (networkResponse.ok) {
+        // 克隆响应并缓存
+        const responseToCache = networkResponse.clone()
+        cache.put(request, responseToCache)
+        
+        // 通知客户端有更新
+        notifyClientsOfUpdate(request.url)
+      }
+      return networkResponse
+    } catch (error) {
+      console.log('[Service Worker] 后台更新失败:', request.url)
+      return null
+    }
+  }
 
   if (cachedResponse) {
-    // 返回缓存
+    // 有缓存，立即返回，后台更新
+    fetchAndCache()
+    return cachedResponse
+  }
+
+  // 没有缓存，等待网络请求
+  try {
+    const networkResponse = await fetch(request)
+    if (networkResponse.ok) {
+      cache.put(request, networkResponse.clone())
+    }
+    return networkResponse
+  } catch (error) {
+    return getOfflineResponse(request)
+  }
+}
+
+/**
+ * 缓存优先策略
+ * 先从缓存获取，缓存不存在则从网络获取并缓存
+ * @param {Request} request - 请求对象
+ * @param {string} cacheName - 缓存名称
+ * @returns {Promise<Response>} 响应
+ */
+async function cacheFirst(request, cacheName = CACHE_NAME) {
+  const cache = await caches.open(cacheName)
+  const cachedResponse = await cache.match(request)
+
+  if (cachedResponse) {
     return cachedResponse
   }
 
   try {
-    // 从网络获取
     const networkResponse = await fetch(request)
-
-    // 缓存响应
     if (networkResponse.ok) {
-      const cache = await caches.open(CACHE_NAME)
       cache.put(request, networkResponse.clone())
     }
-
     return networkResponse
   } catch (error) {
-    // 网络失败，返回离线页面
     return getOfflineResponse(request)
   }
 }
@@ -260,13 +347,10 @@ async function cacheFirst(request) {
  */
 async function networkFirst(request) {
   try {
-    // 尝试从网络获取
     const networkResponse = await fetch(request, {
-      // 添加超时控制
       signal: AbortSignal.timeout(10000)
     })
 
-    // 缓存成功的响应
     if (networkResponse.ok && request.method === 'GET') {
       const cache = await caches.open(DYNAMIC_CACHE_NAME)
       cache.put(request, networkResponse.clone())
@@ -276,50 +360,52 @@ async function networkFirst(request) {
   } catch (error) {
     console.log('[Service Worker] 网络请求失败，尝试缓存:', request.url)
 
-    // 从缓存获取
     const cachedResponse = await caches.match(request)
-
     if (cachedResponse) {
       return cachedResponse
     }
 
-    // 返回离线响应
     return getOfflineResponse(request)
   }
 }
 
 /**
- * 缓存优先 + 后台更新策略
- * 立即返回缓存，同时在后台更新缓存
+ * 图片缓存策略
+ * 使用专门的图片缓存，并限制缓存大小
  * @param {Request} request - 请求对象
  * @returns {Promise<Response>} 响应
  */
-async function cacheFirstWithUpdate(request) {
-  const cachedResponse = await caches.match(request)
+async function imageCacheStrategy(request) {
+  const cache = await caches.open(IMAGE_CACHE_NAME)
+  const cachedResponse = await cache.match(request)
 
   // 后台更新
-  const updatePromise = fetch(request)
-    .then((networkResponse) => {
+  const fetchAndCache = async () => {
+    try {
+      const networkResponse = await fetch(request)
       if (networkResponse.ok) {
-        caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
-          cache.put(request, networkResponse)
-        })
+        // 检查缓存大小，如果超过限制则清理
+        const cacheSize = await getCacheSize(IMAGE_CACHE_NAME)
+        if (cacheSize > MAX_CACHE_SIZE) {
+          await cleanupLRUCache(IMAGE_CACHE_NAME)
+        }
+        
+        cache.put(request, networkResponse.clone())
       }
-    })
-    .catch(() => {
-      // 忽略更新失败
-    })
+      return networkResponse
+    } catch (error) {
+      return null
+    }
+  }
 
   if (cachedResponse) {
-    // 返回缓存，同时后台更新
+    fetchAndCache()
     return cachedResponse
   }
 
-  // 没有缓存，等待网络请求
   try {
     const networkResponse = await fetch(request)
     if (networkResponse.ok) {
-      const cache = await caches.open(DYNAMIC_CACHE_NAME)
       cache.put(request, networkResponse.clone())
     }
     return networkResponse
@@ -343,7 +429,6 @@ async function getOfflineResponse(request) {
       return offlinePage
     }
 
-    // 没有离线页面，返回默认响应
     return new Response(
       `<!DOCTYPE html>
       <html lang="zh-CN">
@@ -410,8 +495,94 @@ async function getOfflineResponse(request) {
     )
   }
 
-  // 其他请求返回503
   return new Response('Service Unavailable', { status: 503 })
+}
+
+// ============================================
+// 缓存管理
+// ============================================
+
+/**
+ * 获取缓存大小（MB）
+ * @param {string} cacheName - 缓存名称
+ * @returns {Promise<number>} 缓存大小（MB）
+ */
+async function getCacheSize(cacheName) {
+  const cache = await caches.open(cacheName)
+  const requests = await cache.keys()
+  let size = 0
+
+  for (const request of requests) {
+    const response = await cache.match(request)
+    if (response) {
+      const blob = await response.blob()
+      size += blob.size
+    }
+  }
+
+  return size / (1024 * 1024) // 转换为MB
+}
+
+/**
+ * 清理过期缓存
+ */
+async function cleanupExpiredCache() {
+  const cacheNames = [DYNAMIC_CACHE_NAME, IMAGE_CACHE_NAME]
+  const now = Date.now()
+
+  for (const cacheName of cacheNames) {
+    try {
+      const cache = await caches.open(cacheName)
+      const requests = await cache.keys()
+
+      for (const request of requests) {
+        const response = await cache.match(request)
+        if (response) {
+          const dateHeader = response.headers.get('date')
+          if (dateHeader) {
+            const cachedTime = new Date(dateHeader).getTime()
+            if (now - cachedTime > MAX_CACHE_AGE) {
+              await cache.delete(request)
+              console.log('[Service Worker] 删除过期缓存:', request.url)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Service Worker] 清理缓存失败:', error)
+    }
+  }
+}
+
+/**
+ * 清理LRU缓存（最少使用）
+ * @param {string} cacheName - 缓存名称
+ */
+async function cleanupLRUCache(cacheName) {
+  const cache = await caches.open(cacheName)
+  const requests = await cache.keys()
+  
+  // 删除一半缓存项（简化实现）
+  const deleteCount = Math.floor(requests.length / 2)
+  for (let i = 0; i < deleteCount; i++) {
+    await cache.delete(requests[i])
+  }
+  
+  console.log('[Service Worker] 清理LRU缓存:', deleteCount, '项')
+}
+
+/**
+ * 通知客户端有更新
+ * @param {string} url - 更新的URL
+ */
+async function notifyClientsOfUpdate(url) {
+  const clients = await self.clients.matchAll()
+  clients.forEach((client) => {
+    client.postMessage({
+      type: 'CACHE_UPDATED',
+      url: url
+    })
+  })
 }
 
 // ============================================
@@ -432,7 +603,6 @@ function addToSyncQueue(task) {
     id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   })
 
-  // 存储到 IndexedDB
   storeSyncQueue()
 }
 
@@ -529,6 +699,72 @@ async function syncOfflineData() {
 }
 
 // ============================================
+// 周期性后台同步
+// ============================================
+
+// 监听周期性后台同步事件
+self.addEventListener('periodicsync', (event) => {
+  console.log('[Service Worker] 周期性后台同步:', event.tag)
+
+  if (event.tag === 'periodic-sync-data') {
+    event.waitUntil(periodicSyncData())
+  }
+})
+
+/**
+ * 周期性同步数据
+ * 用于在后台定期同步用户数据、检查更新等
+ */
+async function periodicSyncData() {
+  console.log('[Service Worker] 执行周期性同步...')
+
+  try {
+    // 1. 同步离线数据
+    await syncOfflineData()
+
+    // 2. 预缓存重要资源
+    await precacheImportantResources()
+
+    // 3. 通知客户端
+    const clients = await self.clients.matchAll()
+    clients.forEach((client) => {
+      client.postMessage({
+        type: 'PERIODIC_SYNC_COMPLETE',
+        timestamp: Date.now()
+      })
+    })
+
+    console.log('[Service Worker] 周期性同步完成')
+  } catch (error) {
+    console.error('[Service Worker] 周期性同步失败:', error)
+  }
+}
+
+/**
+ * 预缓存重要资源
+ */
+async function precacheImportantResources() {
+  const importantUrls = [
+    '/',
+    '/index.html',
+    '/offline.html',
+  ]
+
+  const cache = await caches.open(CACHE_NAME)
+
+  for (const url of importantUrls) {
+    try {
+      const response = await fetch(url, { cache: 'reload' })
+      if (response.ok) {
+        await cache.put(url, response)
+      }
+    } catch (error) {
+      console.log('[Service Worker] 预缓存失败:', url)
+    }
+  }
+}
+
+// ============================================
 // 推送通知
 // ============================================
 
@@ -562,7 +798,8 @@ self.addEventListener('push', (event) => {
     tag: data.tag,
     data: data.data,
     vibrate: [100, 50, 100],
-    actions: [
+    requireInteraction: data.requireInteraction || false,
+    actions: data.actions || [
       { action: 'open', title: '查看' },
       { action: 'close', title: '关闭' }
     ]
@@ -608,6 +845,25 @@ self.addEventListener('notificationclick', (event) => {
 // 监听通知关闭事件
 self.addEventListener('notificationclose', (event) => {
   console.log('[Service Worker] 通知关闭')
+})
+
+// 监听推送订阅变更事件
+self.addEventListener('pushsubscriptionchange', (event) => {
+  console.log('[Service Worker] 推送订阅变更')
+
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: event.oldSubscription?.options?.applicationServerKey
+    }).then((subscription) => {
+      // 通知服务器新的订阅信息
+      return fetch('/api/push/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription })
+      })
+    })
+  )
 })
 
 // ============================================
@@ -672,6 +928,53 @@ self.addEventListener('message', (event) => {
           applicationServerKey: data.applicationServerKey
         }).then((subscription) => {
           event.ports[0]?.postMessage({ subscription })
+        }).catch((error) => {
+          event.ports[0]?.postMessage({ error: error.message })
+        })
+      )
+      break
+
+    case 'UNSUBSCRIBE_PUSH':
+      // 取消推送订阅
+      event.waitUntil(
+        self.registration.pushManager.getSubscription().then((subscription) => {
+          if (subscription) {
+            return subscription.unsubscribe()
+          }
+          return false
+        }).then((result) => {
+          event.ports[0]?.postMessage({ success: result })
+        }).catch((error) => {
+          event.ports[0]?.postMessage({ error: error.message })
+        })
+      )
+      break
+
+    case 'GET_CACHE_SIZE':
+      // 获取缓存大小
+      event.waitUntil(
+        getCacheSize(data.cacheName || CACHE_NAME).then((size) => {
+          event.ports[0]?.postMessage({ size })
+        })
+      )
+      break
+
+    case 'CLEANUP_CACHE':
+      // 清理缓存
+      event.waitUntil(
+        cleanupExpiredCache().then(() => {
+          event.ports[0]?.postMessage({ success: true })
+        })
+      )
+      break
+
+    case 'REGISTER_PERIODIC_SYNC':
+      // 注册周期性后台同步
+      event.waitUntil(
+        self.registration.periodicSync.register('periodic-sync-data', {
+          minInterval: data.minInterval || 24 * 60 * 60 * 1000 // 默认24小时
+        }).then(() => {
+          event.ports[0]?.postMessage({ success: true })
         }).catch((error) => {
           event.ports[0]?.postMessage({ error: error.message })
         })

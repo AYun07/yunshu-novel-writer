@@ -1,23 +1,23 @@
 /**
- * 云书 - Electron 原生菜单模块
- * 
+ * 云书 - Electron 原生菜单模块（增强版）
+ *
  * 功能说明：
- * - 创建应用程序原生菜单栏
- * - 文件菜单（新建项目、打开项目、保存、导出、最近项目、退出）
- * - 编辑菜单（撤销、重做、剪切、复制、粘贴、全选）
- * - 视图菜单（重新加载、开发者工具、全屏、侧边栏切换）
- * - 项目菜单（新建章节、章节管理、角色管理、世界观）
- * - 工具菜单（AI创作、质量分析、专注模式）
- * - 帮助菜单（关于、文档、检查更新）
+ * - 应用菜单（macOS）
+ * - 文件菜单（新建/打开/保存/导出）
+ * - 编辑菜单（撤销/重做/剪切/复制/粘贴/全选/查找）
+ * - 视图菜单（放大/缩小/重置/全屏）
+ * - 窗口菜单（最小化/关闭/切换）
+ * - 帮助菜单（文档/反馈/检查更新/关于）
+ * - 所有菜单项绑定实际功能
  * - 快捷键绑定
  * - 菜单项状态管理
- * 
+ *
  * 支持平台：
  * - macOS: 应用菜单（在屏幕顶部菜单栏）
  * - Windows/Linux: 窗口菜单（在窗口标题栏下）
  */
 
-const { Menu, app, shell, dialog } = require('electron');
+const { Menu, app, shell, dialog, ipcMain } = require('electron');
 
 // ============================================
 // 全局变量
@@ -38,6 +38,7 @@ const menuState = {
   canRedo: false,          // 是否可以重做
   isFullscreen: false,     // 是否全屏
   sidebarVisible: true,    // 侧边栏是否可见
+  zoomLevel: 0,            // 缩放级别
 };
 
 /** @type {string[]} 最近打开的项目列表 */
@@ -73,7 +74,6 @@ function getMenuTemplate(isDarwin) {
           accelerator: 'Cmd+,',
           click: () => sendMenuAction('open-settings'),
         },
-        { type: 'separator' },
         {
           label: '服务',
           role: 'services',
@@ -113,22 +113,22 @@ function getMenuTemplate(isDarwin) {
         accelerator: isDarwin ? 'Cmd+N' : 'Ctrl+N',
         click: () => sendMenuAction('new-project'),
       },
-      
+
       // 打开项目
       {
         label: '打开项目...',
         accelerator: isDarwin ? 'Cmd+O' : 'Ctrl+O',
         click: () => sendMenuAction('open-project'),
       },
-      
+
       // 最近打开的项目
       {
         label: '最近打开',
         submenu: buildRecentProjectsMenu(),
       },
-      
+
       { type: 'separator' },
-      
+
       // 保存
       {
         label: '保存',
@@ -136,7 +136,7 @@ function getMenuTemplate(isDarwin) {
         enabled: menuState.hasProject,
         click: () => sendMenuAction('save-project'),
       },
-      
+
       // 另存为
       {
         label: '另存为...',
@@ -144,9 +144,38 @@ function getMenuTemplate(isDarwin) {
         enabled: menuState.hasProject,
         click: () => sendMenuAction('save-project-as'),
       },
-      
+
+      // 自动保存
+      {
+        label: '自动保存',
+        type: 'checkbox',
+        checked: false,
+        click: (menuItem) => {
+          sendMenuAction('toggle-auto-save', { enabled: menuItem.checked });
+        },
+      },
+
       { type: 'separator' },
-      
+
+      // 导入
+      {
+        label: '导入',
+        submenu: [
+          {
+            label: '导入 TXT...',
+            click: () => sendMenuAction('import-txt'),
+          },
+          {
+            label: '导入 Markdown...',
+            click: () => sendMenuAction('import-md'),
+          },
+          {
+            label: '导入 EPUB...',
+            click: () => sendMenuAction('import-epub'),
+          },
+        ],
+      },
+
       // 导出菜单
       {
         label: '导出',
@@ -169,9 +198,9 @@ function getMenuTemplate(isDarwin) {
           },
         ],
       },
-      
+
       { type: 'separator' },
-      
+
       // 关闭项目
       {
         label: '关闭项目',
@@ -179,7 +208,7 @@ function getMenuTemplate(isDarwin) {
         enabled: menuState.hasProject,
         click: () => sendMenuAction('close-project'),
       },
-      
+
       // 非macOS显示退出
       ...(!isDarwin ? [
         { type: 'separator' },
@@ -205,7 +234,7 @@ function getMenuTemplate(isDarwin) {
         enabled: menuState.canUndo,
         click: () => sendMenuAction('undo'),
       },
-      
+
       // 重做
       {
         label: '重做',
@@ -213,51 +242,125 @@ function getMenuTemplate(isDarwin) {
         enabled: menuState.canRedo,
         click: () => sendMenuAction('redo'),
       },
-      
+
       { type: 'separator' },
-      
+
       // 剪切
       {
         label: '剪切',
         accelerator: isDarwin ? 'Cmd+X' : 'Ctrl+X',
         role: 'cut',
       },
-      
+
       // 复制
       {
         label: '复制',
         accelerator: isDarwin ? 'Cmd+C' : 'Ctrl+C',
         role: 'copy',
       },
-      
+
       // 粘贴
       {
         label: '粘贴',
         accelerator: isDarwin ? 'Cmd+V' : 'Ctrl+V',
         role: 'paste',
       },
-      
+
+      // 粘贴并匹配样式
+      {
+        label: '粘贴并匹配样式',
+        accelerator: isDarwin ? 'Cmd+Shift+V' : 'Ctrl+Shift+V',
+        role: 'pasteAndMatchStyle',
+      },
+
+      // 删除
+      {
+        label: '删除',
+        click: () => sendMenuAction('delete'),
+      },
+
       // 全选
       {
         label: '全选',
         accelerator: isDarwin ? 'Cmd+A' : 'Ctrl+A',
         role: 'selectAll',
       },
-      
+
       { type: 'separator' },
-      
+
       // 查找
       {
         label: '查找...',
         accelerator: isDarwin ? 'Cmd+F' : 'Ctrl+F',
         click: () => sendMenuAction('find'),
       },
-      
+
+      // 查找下一个
+      {
+        label: '查找下一个',
+        accelerator: isDarwin ? 'Cmd+G' : 'Ctrl+G',
+        enabled: false,
+        click: () => sendMenuAction('find-next'),
+      },
+
+      // 查找上一个
+      {
+        label: '查找上一个',
+        accelerator: isDarwin ? 'Cmd+Shift+G' : 'Ctrl+Shift+G',
+        enabled: false,
+        click: () => sendMenuAction('find-previous'),
+      },
+
       // 替换
       {
         label: '替换...',
         accelerator: isDarwin ? 'Cmd+Option+F' : 'Ctrl+H',
         click: () => sendMenuAction('replace'),
+      },
+
+      // 转到行
+      {
+        label: '转到行...',
+        accelerator: isDarwin ? 'Cmd+L' : 'Ctrl+G',
+        click: () => sendMenuAction('go-to-line'),
+      },
+
+      { type: 'separator' },
+
+      // 拼写和语法
+      {
+        label: '拼写和语法',
+        submenu: [
+          {
+            label: '立即检查文档',
+            click: () => sendMenuAction('check-spelling'),
+          },
+          { type: 'separator' },
+          {
+            label: '键入时检查拼写',
+            type: 'checkbox',
+            checked: true,
+            click: (menuItem) => {
+              sendMenuAction('toggle-spell-check', { enabled: menuItem.checked });
+            },
+          },
+          {
+            label: '检查语法和拼写',
+            type: 'checkbox',
+            checked: true,
+            click: (menuItem) => {
+              sendMenuAction('toggle-grammar-check', { enabled: menuItem.checked });
+            },
+          },
+          {
+            label: '自动纠正拼写',
+            type: 'checkbox',
+            checked: false,
+            click: (menuItem) => {
+              sendMenuAction('toggle-auto-correct', { enabled: menuItem.checked });
+            },
+          },
+        ],
       },
     ],
   });
@@ -278,7 +381,7 @@ function getMenuTemplate(isDarwin) {
           }
         },
       },
-      
+
       // 强制重新加载
       {
         label: '强制重新加载',
@@ -289,9 +392,7 @@ function getMenuTemplate(isDarwin) {
           }
         },
       },
-      
-      { type: 'separator' },
-      
+
       // 开发者工具
       {
         label: '开发者工具',
@@ -302,40 +403,94 @@ function getMenuTemplate(isDarwin) {
           }
         },
       },
-      
+
       { type: 'separator' },
-      
+
       // 全屏
       {
         label: menuState.isFullscreen ? '退出全屏' : '全屏',
         accelerator: isDarwin ? 'Ctrl+Cmd+F' : 'F11',
         click: () => toggleFullscreen(),
       },
-      
+
       // 侧边栏
       {
         label: menuState.sidebarVisible ? '隐藏侧边栏' : '显示侧边栏',
         accelerator: isDarwin ? 'Cmd+B' : 'Ctrl+B',
         click: () => sendMenuAction('toggle-sidebar'),
       },
-      
+
+      // 工具栏
+      {
+        label: '显示工具栏',
+        type: 'checkbox',
+        checked: true,
+        click: (menuItem) => {
+          sendMenuAction('toggle-toolbar', { visible: menuItem.checked });
+        },
+      },
+
+      // 状态栏
+      {
+        label: '显示状态栏',
+        type: 'checkbox',
+        checked: true,
+        click: (menuItem) => {
+          sendMenuAction('toggle-status-bar', { visible: menuItem.checked });
+        },
+      },
+
       { type: 'separator' },
-      
+
       // 缩放
       {
         label: '放大',
         accelerator: isDarwin ? 'Cmd+=' : 'Ctrl+=',
-        click: () => sendMenuAction('zoom-in'),
+        click: () => zoomIn(),
       },
       {
         label: '缩小',
         accelerator: isDarwin ? 'Cmd+-' : 'Ctrl+-',
-        click: () => sendMenuAction('zoom-out'),
+        click: () => zoomOut(),
       },
       {
         label: '重置缩放',
         accelerator: isDarwin ? 'Cmd+0' : 'Ctrl+0',
-        click: () => sendMenuAction('zoom-reset'),
+        click: () => resetZoom(),
+      },
+
+      { type: 'separator' },
+
+      // 主题
+      {
+        label: '主题',
+        submenu: [
+          {
+            label: '浅色',
+            type: 'radio',
+            checked: true,
+            click: () => sendMenuAction('set-theme', { theme: 'light' }),
+          },
+          {
+            label: '深色',
+            type: 'radio',
+            checked: false,
+            click: () => sendMenuAction('set-theme', { theme: 'dark' }),
+          },
+          {
+            label: '自动',
+            type: 'radio',
+            checked: false,
+            click: () => sendMenuAction('set-theme', { theme: 'auto' }),
+          },
+        ],
+      },
+
+      // 专注模式
+      {
+        label: '专注模式',
+        accelerator: isDarwin ? 'Cmd+Shift+F' : 'Ctrl+Shift+F',
+        click: () => sendMenuAction('focus-mode'),
       },
     ],
   });
@@ -352,9 +507,9 @@ function getMenuTemplate(isDarwin) {
         enabled: menuState.hasProject,
         click: () => sendMenuAction('project-info'),
       },
-      
+
       { type: 'separator' },
-      
+
       // 新建章节
       {
         label: '新建章节',
@@ -362,44 +517,50 @@ function getMenuTemplate(isDarwin) {
         enabled: menuState.hasProject,
         click: () => sendMenuAction('new-chapter'),
       },
-      
+
       // 章节管理
       {
         label: '章节管理...',
         enabled: menuState.hasProject,
         click: () => sendMenuAction('chapter-management'),
       },
-      
+
       { type: 'separator' },
-      
+
       // 角色管理
       {
         label: '角色管理...',
         enabled: menuState.hasProject,
         click: () => sendMenuAction('character-management'),
       },
-      
+
       // 世界观
       {
         label: '世界观设定...',
         enabled: menuState.hasProject,
         click: () => sendMenuAction('worldview-management'),
       },
-      
+
       // 大纲
       {
         label: '故事大纲...',
         enabled: menuState.hasProject,
         click: () => sendMenuAction('outline-management'),
       },
-      
+
       { type: 'separator' },
-      
+
       // 素材库
       {
         label: '素材库...',
         enabled: menuState.hasProject,
         click: () => sendMenuAction('corpus-management'),
+      },
+
+      // 提示词库
+      {
+        label: '提示词库...',
+        click: () => sendMenuAction('prompts-library'),
       },
     ],
   });
@@ -416,52 +577,82 @@ function getMenuTemplate(isDarwin) {
         enabled: menuState.hasProject,
         click: () => sendMenuAction('ai-assistant'),
       },
-      
+
+      // AI续写
+      {
+        label: 'AI续写',
+        accelerator: isDarwin ? 'Cmd+Return' : 'Ctrl+Return',
+        enabled: menuState.hasProject,
+        click: () => sendMenuAction('ai-continue'),
+      },
+
+      // AI改写
+      {
+        label: 'AI改写',
+        enabled: menuState.hasProject,
+        click: () => sendMenuAction('ai-rewrite'),
+      },
+
+      // AI扩写
+      {
+        label: 'AI扩写',
+        enabled: menuState.hasProject,
+        click: () => sendMenuAction('ai-expand'),
+      },
+
+      { type: 'separator' },
+
       // 质量分析
       {
         label: '质量分析',
         enabled: menuState.hasProject,
         click: () => sendMenuAction('quality-analysis'),
       },
-      
-      // 专注模式
+
+      // 敏感词检测
       {
-        label: '专注模式',
-        accelerator: isDarwin ? 'Cmd+Shift+F' : 'Ctrl+Shift+F',
-        click: () => sendMenuAction('focus-mode'),
+        label: '敏感词检测',
+        enabled: menuState.hasProject,
+        click: () => sendMenuAction('sensitive-words-check'),
       },
-      
+
+      // 字数统计
+      {
+        label: '字数统计',
+        accelerator: isDarwin ? 'Cmd+Shift+W' : 'Ctrl+Shift+W',
+        enabled: menuState.hasProject,
+        click: () => sendMenuAction('word-count'),
+      },
+
       { type: 'separator' },
-      
+
       // 写作目标
       {
         label: '写作目标...',
         click: () => sendMenuAction('writing-goals'),
       },
-      
+
       // 写作统计
       {
         label: '写作统计...',
         enabled: menuState.hasProject,
         click: () => sendMenuAction('writing-stats'),
       },
-      
+
+      // 番茄钟
+      {
+        label: '番茄钟',
+        click: () => sendMenuAction('pomodoro'),
+      },
+
       { type: 'separator' },
-      
+
       // 模板管理
       {
         label: '模板管理...',
         click: () => sendMenuAction('template-management'),
       },
-      
-      // 提示词库
-      {
-        label: '提示词库...',
-        click: () => sendMenuAction('prompts-library'),
-      },
-      
-      { type: 'separator' },
-      
+
       // 设置
       {
         label: '设置...',
@@ -480,6 +671,7 @@ function getMenuTemplate(isDarwin) {
       submenu: [
         {
           label: '最小化',
+          accelerator: 'Cmd+M',
           role: 'minimize',
         },
         {
@@ -490,6 +682,17 @@ function getMenuTemplate(isDarwin) {
         {
           label: '前置全部窗口',
           role: 'front',
+        },
+        { type: 'separator' },
+        {
+          label: '新建窗口',
+          accelerator: 'Cmd+Shift+N',
+          click: () => sendMenuAction('new-window'),
+        },
+        {
+          label: '关闭窗口',
+          accelerator: 'Cmd+W',
+          role: 'close',
         },
       ],
     });
@@ -509,43 +712,62 @@ function getMenuTemplate(isDarwin) {
         },
         { type: 'separator' },
       ] : []),
-      
+
       // 文档
       {
         label: '使用文档',
         click: () => shell.openExternal('https://yunshu.app/docs'),
       },
-      
+
       // 快捷键
       {
         label: '快捷键参考',
+        accelerator: isDarwin ? 'Cmd+/' : 'Ctrl+/',
         click: () => sendMenuAction('show-shortcuts'),
       },
-      
+
+      // 教程
+      {
+        label: '入门教程',
+        click: () => shell.openExternal('https://yunshu.app/tutorial'),
+      },
+
       { type: 'separator' },
-      
+
       // 反馈
       {
         label: '提交反馈',
         click: () => shell.openExternal('https://yunshu.app/feedback'),
       },
-      
+
       // 报告问题
       {
         label: '报告问题',
         click: () => shell.openExternal('https://yunshu.app/issues'),
       },
-      
+
+      // 功能建议
+      {
+        label: '功能建议',
+        click: () => shell.openExternal('https://yunshu.app/feature-request'),
+      },
+
       { type: 'separator' },
-      
+
       // 检查更新
       {
         label: '检查更新...',
         click: () => sendMenuAction('check-updates'),
       },
-      
+
+      // 查看日志
+      {
+        label: '查看日志',
+        click: () => sendMenuAction('view-logs'),
+      },
+
       { type: 'separator' },
-      
+
       // 开发者工具
       {
         label: '开发者工具',
@@ -556,11 +778,27 @@ function getMenuTemplate(isDarwin) {
           }
         },
       },
+
+      // 重启并清除缓存
+      {
+        label: '重启并清除缓存',
+        click: () => {
+          if (mainWindowRef) {
+            mainWindowRef.webContents.session.clearCache().then(() => {
+              mainWindowRef.reload();
+            });
+          }
+        },
+      },
     ],
   });
 
   return template;
 }
+
+// ============================================
+// 菜单操作
+// ============================================
 
 /**
  * 构建最近打开项目菜单
@@ -576,8 +814,9 @@ function buildRecentProjectsMenu() {
     ];
   }
 
-  const items = recentProjects.map((project, index) => ({
+  const items = recentProjects.slice(0, 10).map((project, index) => ({
     label: project.name || `项目 ${index + 1}`,
+    accelerator: index < 9 ? `Cmd+${index + 1}` : undefined,
     click: () => sendMenuAction('open-recent-project', project),
   }));
 
@@ -590,10 +829,6 @@ function buildRecentProjectsMenu() {
 
   return items;
 }
-
-// ============================================
-// 菜单操作
-// ============================================
 
 /**
  * 发送菜单动作到渲染进程
@@ -619,6 +854,36 @@ function toggleFullscreen() {
 }
 
 /**
+ * 放大
+ */
+function zoomIn() {
+  if (mainWindowRef) {
+    menuState.zoomLevel = Math.min(menuState.zoomLevel + 1, 5);
+    mainWindowRef.webContents.setZoomLevel(menuState.zoomLevel);
+  }
+}
+
+/**
+ * 缩小
+ */
+function zoomOut() {
+  if (mainWindowRef) {
+    menuState.zoomLevel = Math.max(menuState.zoomLevel - 1, -5);
+    mainWindowRef.webContents.setZoomLevel(menuState.zoomLevel);
+  }
+}
+
+/**
+ * 重置缩放
+ */
+function resetZoom() {
+  if (mainWindowRef) {
+    menuState.zoomLevel = 0;
+    mainWindowRef.webContents.setZoomLevel(0);
+  }
+}
+
+/**
  * 显示关于对话框
  */
 function showAboutDialog() {
@@ -627,8 +892,15 @@ function showAboutDialog() {
     title: `关于 ${app.name}`,
     message: app.name,
     detail: `版本: ${app.getVersion()}\n\n云书 - AI智能小说创作平台\n\n一款专为小说创作者设计的智能写作工具，\n集成AI辅助创作、角色管理、世界观构建等功能。\n\n© 2024 云书团队`,
-    buttons: ['确定'],
+    buttons: ['确定', '复制版本信息'],
+    defaultId: 0,
+    cancelId: 0,
     icon: null,
+  }).then((result) => {
+    if (result.response === 1) {
+      const { clipboard } = require('electron');
+      clipboard.writeText(`云书 ${app.getVersion()}\nElectron: ${process.versions.electron}\nChrome: ${process.versions.chrome}\nNode.js: ${process.versions.node}`);
+    }
   });
 }
 
@@ -643,23 +915,23 @@ function showAboutDialog() {
  */
 function createMenu(mainWindow) {
   mainWindowRef = mainWindow;
-  
+
   const isDarwin = process.platform === 'darwin';
   const template = getMenuTemplate(isDarwin);
-  
+
   // 构建菜单
   currentMenu = Menu.buildFromTemplate(template);
-  
+
   // 设置应用菜单
   Menu.setApplicationMenu(isDarwin ? currentMenu : null);
-  
+
   // Windows/Linux: 设置窗口菜单
   if (!isDarwin && mainWindow) {
     mainWindow.setMenu(currentMenu);
   }
-  
+
   console.log('[Menu] 应用菜单已创建');
-  
+
   return currentMenu;
 }
 
@@ -669,10 +941,10 @@ function createMenu(mainWindow) {
 function rebuildMenu() {
   const isDarwin = process.platform === 'darwin';
   const template = getMenuTemplate(isDarwin);
-  
+
   currentMenu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(isDarwin ? currentMenu : null);
-  
+
   if (!isDarwin && mainWindowRef) {
     mainWindowRef.setMenu(currentMenu);
   }
@@ -734,11 +1006,11 @@ function getCurrentMenu() {
  * @returns {Menu} 菜单实例
  */
 function createEditorContextMenu(params) {
-  const { selectionText, isEditable, editFlags } = params;
+  const { selectionText, isEditable, editFlags, x, y } = params;
   const isDarwin = process.platform === 'darwin';
-  
+
   const template = [];
-  
+
   if (selectionText) {
     // 选中文本时的菜单
     template.push({
@@ -751,6 +1023,8 @@ function createEditorContextMenu(params) {
       enabled: isEditable,
     });
     template.push({ type: 'separator' });
+
+    // AI 功能
     template.push({
       label: 'AI续写',
       click: () => sendMenuAction('ai-continue'),
@@ -763,10 +1037,22 @@ function createEditorContextMenu(params) {
       label: 'AI扩写',
       click: () => sendMenuAction('ai-expand'),
     });
+    template.push({
+      label: 'AI润色',
+      click: () => sendMenuAction('ai-polish'),
+    });
     template.push({ type: 'separator' });
+
+    // 搜索
+    template.push({
+      label: '搜索选中文本',
+      click: () => {
+        shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(selectionText)}`);
+      },
+    });
     template.push({
       label: '添加到素材库',
-      click: () => sendMenuAction('add-to-corpus'),
+      click: () => sendMenuAction('add-to-corpus', { text: selectionText }),
     });
   } else if (isEditable) {
     // 可编辑区域但无选中
@@ -786,7 +1072,7 @@ function createEditorContextMenu(params) {
       click: () => sendMenuAction('ai-continue'),
     });
   }
-  
+
   // 通用选项
   if (template.length > 0) {
     template.push({ type: 'separator' });
@@ -795,7 +1081,20 @@ function createEditorContextMenu(params) {
     label: '全选',
     role: 'selectAll',
   });
-  
+
+  // 开发者选项（开发环境）
+  if (process.env.NODE_ENV === 'development') {
+    template.push({ type: 'separator' });
+    template.push({
+      label: '检查元素',
+      click: () => {
+        if (mainWindowRef) {
+          mainWindowRef.webContents.inspectElement(x, y);
+        }
+      },
+    });
+  }
+
   return Menu.buildFromTemplate(template);
 }
 
@@ -819,44 +1118,68 @@ function showContextMenu(params) {
 function getShortcutsList() {
   const isDarwin = process.platform === 'darwin';
   const mod = isDarwin ? 'Cmd' : 'Ctrl';
-  
+
   return [
-    { category: '文件', shortcuts: [
-      { key: `${mod}+N`, action: '新建项目' },
-      { key: `${mod}+O`, action: '打开项目' },
-      { key: `${mod}+S`, action: '保存' },
-      { key: `${mod}+Shift+S`, action: '另存为' },
-      { key: `${mod}+W`, action: '关闭项目' },
-    ]},
-    { category: '编辑', shortcuts: [
-      { key: `${mod}+Z`, action: '撤销' },
-      { key: `${mod}+Shift+Z`, action: '重做' },
-      { key: `${mod}+X`, action: '剪切' },
-      { key: `${mod}+C`, action: '复制' },
-      { key: `${mod}+V`, action: '粘贴' },
-      { key: `${mod}+A`, action: '全选' },
-      { key: `${mod}+F`, action: '查找' },
-    ]},
-    { category: '视图', shortcuts: [
-      { key: `${mod}+R`, action: '重新加载' },
-      { key: `${mod}+Shift+R`, action: '强制重新加载' },
-      { key: isDarwin ? `${mod}+Ctrl+F` : 'F11', action: '全屏' },
-      { key: `${mod}+B`, action: '切换侧边栏' },
-      { key: `${mod}+=`, action: '放大' },
-      { key: `${mod}+-`, action: '缩小' },
-      { key: `${mod}+0`, action: '重置缩放' },
-    ]},
-    { category: '项目', shortcuts: [
-      { key: `${mod}+Shift+N`, action: '新建章节' },
-    ]},
-    { category: '工具', shortcuts: [
-      { key: `${mod}+Shift+F`, action: '专注模式' },
-      { key: `${mod}+,`, action: '设置' },
-    ]},
-    { category: '开发', shortcuts: [
-      { key: isDarwin ? `Alt+${mod}+I` : 'Ctrl+Shift+I', action: '开发者工具' },
-      { key: isDarwin ? `F12` : 'F12', action: '开发者工具' },
-    ]},
+    {
+      category: '文件', shortcuts: [
+        { key: `${mod}+N`, action: '新建项目' },
+        { key: `${mod}+O`, action: '打开项目' },
+        { key: `${mod}+S`, action: '保存' },
+        { key: `${mod}+Shift+S`, action: '另存为' },
+        { key: `${mod}+W`, action: '关闭项目' },
+      ]
+    },
+    {
+      category: '编辑', shortcuts: [
+        { key: `${mod}+Z`, action: '撤销' },
+        { key: `${mod}+Shift+Z`, action: '重做' },
+        { key: `${mod}+X`, action: '剪切' },
+        { key: `${mod}+C`, action: '复制' },
+        { key: `${mod}+V`, action: '粘贴' },
+        { key: `${mod}+Shift+V`, action: '粘贴并匹配样式' },
+        { key: `${mod}+A`, action: '全选' },
+        { key: `${mod}+F`, action: '查找' },
+        { key: `${mod}+G`, action: '查找下一个' },
+        { key: `${mod}+Shift+G`, action: '查找上一个' },
+        { key: `${mod}+H`, action: '替换' },
+        { key: `${mod}+L`, action: '转到行' },
+      ]
+    },
+    {
+      category: '视图', shortcuts: [
+        { key: `${mod}+R`, action: '重新加载' },
+        { key: `${mod}+Shift+R`, action: '强制重新加载' },
+        { key: isDarwin ? `${mod}+Ctrl+F` : 'F11', action: '全屏' },
+        { key: `${mod}+B`, action: '切换侧边栏' },
+        { key: `${mod}+=`, action: '放大' },
+        { key: `${mod}+-`, action: '缩小' },
+        { key: `${mod}+0`, action: '重置缩放' },
+      ]
+    },
+    {
+      category: '项目', shortcuts: [
+        { key: `${mod}+Shift+N`, action: '新建章节' },
+      ]
+    },
+    {
+      category: '工具', shortcuts: [
+        { key: `${mod}+Shift+F`, action: '专注模式' },
+        { key: `${mod}+Return`, action: 'AI续写' },
+        { key: `${mod}+Shift+W`, action: '字数统计' },
+        { key: `${mod}+,`, action: '设置' },
+      ]
+    },
+    {
+      category: '帮助', shortcuts: [
+        { key: `${mod}+/`, action: '快捷键参考' },
+      ]
+    },
+    {
+      category: '开发', shortcuts: [
+        { key: isDarwin ? `Alt+${mod}+I` : 'Ctrl+Shift+I', action: '开发者工具' },
+        { key: 'F12', action: '开发者工具' },
+      ]
+    },
   ];
 }
 
@@ -869,25 +1192,28 @@ module.exports = {
   createMenu,
   rebuildMenu,
   getCurrentMenu,
-  
+
   // 状态管理
   updateMenuState,
   updateMenuStates,
   getMenuState,
-  
+
   // 最近项目
   setRecentProjects,
   buildRecentProjectsMenu,
-  
+
   // 上下文菜单
   createEditorContextMenu,
   showContextMenu,
-  
+
   // 快捷键
   getShortcutsList,
-  
+
   // 工具函数
   sendMenuAction,
   toggleFullscreen,
   showAboutDialog,
+  zoomIn,
+  zoomOut,
+  resetZoom,
 };

@@ -1,894 +1,779 @@
 /**
- * 云书 - Electron IPC 处理器模块
- * 
+ * 云书 - Electron IPC 通信处理器（增强版）
+ *
  * 功能说明：
- * - 文件操作（打开、保存、导出）
- * - 项目管理（创建、打开、保存）
+ * - 文件对话框（打开、保存、导出）
  * - 剪贴板操作
- * - 通知
- * - 自动更新检查
- * - 系统信息
- * 
- * IPC通信模式：
- * - ipcRenderer.invoke() -> ipcMain.handle() : 异步请求-响应
- * - ipcRenderer.send() -> ipcMain.on() : 异步单向通信
- * - ipcMain.send() -> ipcRenderer.on() : 主进程向渲染进程发送
+ * - 系统通知
+ * - 窗口控制
+ * - 自动更新
+ * - 文件读写
+ * - 数据存储
+ * - 应用信息
+ * - 窗口管理
+ *
+ * 所有 IPC 通信都通过此模块处理，确保主进程和渲染进程之间的安全通信
  */
 
-const { ipcMain, dialog, app, clipboard, nativeImage, Notification, shell } = require('electron');
-const fs = require('fs');
+const { ipcMain, dialog, clipboard, shell, BrowserWindow } = require('electron');
+const fs = require('fs').promises;
 const path = require('path');
 
 // ============================================
-// 全局变量
+// 配置
 // ============================================
 
-/** @type {BrowserWindow|null} 主窗口引用 */
-let mainWindowRef = null;
+/** 默认文件过滤器 */
+const DEFAULT_FILTERS = {
+  text: [{ name: '文本文件', extensions: ['txt'] }],
+  markdown: [{ name: 'Markdown', extensions: ['md'] }],
+  json: [{ name: 'JSON', extensions: ['json'] }],
+  epub: [{ name: 'EPUB', extensions: ['epub'] }],
+  docx: [{ name: 'Word 文档', extensions: ['docx'] }],
+  pdf: [{ name: 'PDF', extensions: ['pdf'] }],
+  all: [{ name: '所有文件', extensions: ['*'] }],
+};
 
-/** @type {Object} 存储模块引用 */
-let storeRef = null;
+/** 支持的导入格式 */
+const IMPORT_FILTERS = [
+  { name: '文本文件', extensions: ['txt'] },
+  { name: 'Markdown', extensions: ['md'] },
+  { name: 'EPUB', extensions: ['epub'] },
+  { name: 'JSON', extensions: ['json'] },
+  { name: '所有文件', extensions: ['*'] },
+];
 
-/** @type {Object} 菜单模块引用 */
-let menuRef = null;
-
-/** @type {Object} 托盘模块引用 */
-let trayRef = null;
-
-// ============================================
-// 初始化
-// ============================================
-
-/**
- * 注册所有IPC处理器
- * @param {Object} options - 选项对象
- * @param {BrowserWindow} options.mainWindow - 主窗口实例
- * @param {Object} options.store - 存储模块
- * @param {Object} options.menu - 菜单模块
- * @param {Object} options.tray - 托盘模块
- */
-function registerIpcHandlers(options = {}) {
-  // 保存引用
-  mainWindowRef = options.mainWindow || null;
-  storeRef = options.store || null;
-  menuRef = options.menu || null;
-  trayRef = options.tray || null;
-  
-  // 注册各类处理器
-  registerFileHandlers();
-  registerProjectHandlers();
-  registerClipboardHandlers();
-  registerNotificationHandlers();
-  registerStoreHandlers();
-  registerWindowHandlers();
-  registerSystemHandlers();
-  registerShortcutHandlers();
-  registerUpdateHandlers();
-  
-  console.log('[IPC] 所有IPC处理器已注册');
-}
+/** 支持的导出格式 */
+const EXPORT_FILTERS = {
+  txt: [{ name: '文本文件', extensions: ['txt'] }],
+  md: [{ name: 'Markdown', extensions: ['md'] }],
+  docx: [{ name: 'Word 文档', extensions: ['docx'] }],
+  pdf: [{ name: 'PDF', extensions: ['pdf'] }],
+  epub: [{ name: 'EPUB', extensions: ['epub'] }],
+  json: [{ name: 'JSON', extensions: ['json'] }],
+};
 
 // ============================================
-// 文件操作处理器
+// 文件对话框
 // ============================================
 
 /**
- * 注册文件操作相关处理器
+ * 打开文件对话框
+ * @param {Object} options - 对话框选项
+ * @returns {Promise<string[]>} 选择的文件路径数组
  */
-function registerFileHandlers() {
-  // 显示打开文件对话框
-  ipcMain.handle('show-open-dialog', async (event, options) => {
-    const defaultOptions = {
-      title: '打开文件',
-      defaultPath: app.getPath('documents'),
-      properties: ['openFile'],
-      filters: [
-        { name: '云书项目', extensions: ['yunshu', 'json'] },
-        { name: '文本文档', extensions: ['txt'] },
-        { name: '所有文件', extensions: ['*'] },
-      ],
-    };
-    
-    const result = await dialog.showOpenDialog(mainWindowRef, {
-      ...defaultOptions,
-      ...options,
-    });
-    
-    return result;
-  });
-  
-  // 显示保存文件对话框
-  ipcMain.handle('show-save-dialog', async (event, options) => {
-    const defaultOptions = {
-      title: '保存文件',
-      defaultPath: app.getPath('documents'),
-      filters: [
-        { name: '云书项目', extensions: ['yunshu'] },
-        { name: 'JSON文件', extensions: ['json'] },
-        { name: '所有文件', extensions: ['*'] },
-      ],
-    };
-    
-    const result = await dialog.showSaveDialog(mainWindowRef, {
-      ...defaultOptions,
-      ...options,
-    });
-    
-    return result;
-  });
-  
-  // 读取文件
-  ipcMain.handle('read-file', async (event, filePath, encoding = 'utf-8') => {
-    try {
-      const content = fs.readFileSync(filePath, encoding);
-      return content;
-    } catch (error) {
-      console.error('[IPC] 读取文件失败:', error);
-      throw error;
-    }
-  });
-  
-  // 写入文件
-  ipcMain.handle('write-file', async (event, filePath, content) => {
-    try {
-      // 确保目录存在
-      const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      
-      fs.writeFileSync(filePath, content, 'utf-8');
-      return true;
-    } catch (error) {
-      console.error('[IPC] 写入文件失败:', error);
-      throw error;
-    }
-  });
-  
-  // 检查文件是否存在
-  ipcMain.handle('file-exists', async (event, filePath) => {
-    return fs.existsSync(filePath);
-  });
-  
-  // 删除文件
-  ipcMain.handle('delete-file', async (event, filePath) => {
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-      return true;
-    } catch (error) {
-      console.error('[IPC] 删除文件失败:', error);
-      throw error;
-    }
-  });
-  
-  // 获取文件信息
-  ipcMain.handle('get-file-info', async (event, filePath) => {
-    try {
-      const stats = fs.statSync(filePath);
-      return {
-        name: path.basename(filePath),
-        path: filePath,
-        size: stats.size,
-        createdAt: stats.birthtimeMs,
-        modifiedAt: stats.mtimeMs,
-        isDirectory: stats.isDirectory(),
-      };
-    } catch (error) {
-      console.error('[IPC] 获取文件信息失败:', error);
-      throw error;
-    }
-  });
-  
-  // 列出目录内容
-  ipcMain.handle('list-directory', async (event, dirPath) => {
-    try {
-      const files = fs.readdirSync(dirPath);
-      return files.map(file => {
-        const filePath = path.join(dirPath, file);
-        const stats = fs.statSync(filePath);
-        return {
-          name: file,
-          path: filePath,
-          size: stats.size,
-          createdAt: stats.birthtimeMs,
-          modifiedAt: stats.mtimeMs,
-          isDirectory: stats.isDirectory(),
-        };
-      });
-    } catch (error) {
-      console.error('[IPC] 列出目录失败:', error);
-      throw error;
-    }
-  });
-  
-  // 创建目录
-  ipcMain.handle('create-directory', async (event, dirPath) => {
-    try {
-      if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-      }
-      return true;
-    } catch (error) {
-      console.error('[IPC] 创建目录失败:', error);
-      throw error;
-    }
-  });
-  
-  // 复制文件
-  ipcMain.handle('copy-file', async (event, source, destination) => {
-    try {
-      // 确保目标目录存在
-      const dir = path.dirname(destination);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      
-      fs.copyFileSync(source, destination);
-      return true;
-    } catch (error) {
-      console.error('[IPC] 复制文件失败:', error);
-      throw error;
-    }
-  });
-  
-  // 移动文件
-  ipcMain.handle('move-file', async (event, source, destination) => {
-    try {
-      // 确保目标目录存在
-      const dir = path.dirname(destination);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      
-      fs.renameSync(source, destination);
-      return true;
-    } catch (error) {
-      console.error('[IPC] 移动文件失败:', error);
-      throw error;
-    }
-  });
-  
-  // 选择目录
-  ipcMain.handle('select-directory', async (event, options) => {
-    const result = await dialog.showOpenDialog(mainWindowRef, {
-      title: '选择目录',
-      properties: ['openDirectory', 'createDirectory'],
-      ...options,
-    });
-    
-    return result;
-  });
-  
-  console.log('[IPC] 文件操作处理器已注册');
-}
+async function handleOpenFileDialog(event, options = {}) {
+  const mainWindow = BrowserWindow.fromWebContents(event.sender);
 
-// ============================================
-// 项目管理处理器
-// ============================================
+  const defaultOptions = {
+    title: '打开文件',
+    properties: ['openFile'],
+    filters: IMPORT_FILTERS,
+  };
 
-/**
- * 注册项目管理相关处理器
- */
-function registerProjectHandlers() {
-  // 打开项目
-  ipcMain.handle('open-project', async (event) => {
-    const result = await dialog.showOpenDialog(mainWindowRef, {
-      title: '打开项目',
-      defaultPath: app.getPath('documents'),
-      filters: [
-        { name: '云书项目', extensions: ['yunshu', 'json'] },
-        { name: '所有文件', extensions: ['*'] },
-      ],
-      properties: ['openFile'],
-    });
-    
-    if (result.canceled || result.filePaths.length === 0) {
-      return null;
-    }
-    
-    const filePath = result.filePaths[0];
-    
-    try {
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const projectData = JSON.parse(content);
-      
-      // 添加到最近项目
-      if (storeRef) {
-        storeRef.addRecentProject({
-          id: projectData.id || Date.now().toString(),
-          name: projectData.name || path.basename(filePath, path.extname(filePath)),
-          path: filePath,
-        });
-      }
-      
-      return {
-        filePath,
-        data: projectData,
-      };
-    } catch (error) {
-      console.error('[IPC] 打开项目失败:', error);
-      throw error;
-    }
+  const result = await dialog.showOpenDialog(mainWindow, {
+    ...defaultOptions,
+    ...options,
   });
-  
-  // 保存项目
-  ipcMain.handle('save-project', async (event, projectData, filePath) => {
-    // 如果没有指定路径，显示保存对话框
-    if (!filePath) {
-      const result = await dialog.showSaveDialog(mainWindowRef, {
-        title: '保存项目',
-        defaultPath: app.getPath('documents'),
-        filters: [
-          { name: '云书项目', extensions: ['yunshu'] },
-          { name: 'JSON文件', extensions: ['json'] },
-        ],
-      });
-      
-      if (result.canceled || !result.filePath) {
-        return null;
-      }
-      
-      filePath = result.filePath;
-    }
-    
-    try {
-      const content = JSON.stringify(projectData, null, 2);
-      fs.writeFileSync(filePath, content, 'utf-8');
-      
-      // 添加到最近项目
-      if (storeRef) {
-        storeRef.addRecentProject({
-          id: projectData.id || Date.now().toString(),
-          name: projectData.name || path.basename(filePath, path.extname(filePath)),
-          path: filePath,
-        });
-      }
-      
-      return filePath;
-    } catch (error) {
-      console.error('[IPC] 保存项目失败:', error);
-      throw error;
-    }
-  });
-  
-  // 导出项目
-  ipcMain.handle('export-project', async (event, exportOptions) => {
-    const { format, content, defaultName } = exportOptions;
-    
-    // 根据格式设置过滤器
-    const filters = {
-      txt: [{ name: '文本文档', extensions: ['txt'] }],
-      docx: [{ name: 'Word文档', extensions: ['docx'] }],
-      pdf: [{ name: 'PDF文档', extensions: ['pdf'] }],
-      epub: [{ name: 'EPUB电子书', extensions: ['epub'] }],
-    };
-    
-    const result = await dialog.showSaveDialog(mainWindowRef, {
-      title: '导出项目',
-      defaultPath: path.join(app.getPath('documents'), defaultName || '未命名'),
-      filters: filters[format] || filters.txt,
-    });
-    
-    if (result.canceled || !result.filePath) {
-      return null;
-    }
-    
-    try {
-      // 根据格式处理内容
-      if (format === 'txt') {
-        fs.writeFileSync(result.filePath, content, 'utf-8');
-      } else {
-        // 其他格式需要渲染进程处理
-        // 这里只返回路径，实际写入由渲染进程完成
-        return result.filePath;
-      }
-      
-      return result.filePath;
-    } catch (error) {
-      console.error('[IPC] 导出项目失败:', error);
-      throw error;
-    }
-  });
-  
-  // 获取最近打开的项目
-  ipcMain.handle('get-recent-projects', async (event) => {
-    if (storeRef) {
-      return storeRef.getRecentProjects();
-    }
+
+  if (result.canceled) {
     return [];
-  });
-  
-  // 添加最近打开的项目
-  ipcMain.handle('add-recent-project', async (event, project) => {
-    if (storeRef) {
-      storeRef.addRecentProject(project);
-      return true;
-    }
-    return false;
-  });
-  
-  // 清除最近打开的项目列表
-  ipcMain.handle('clear-recent-projects', async (event) => {
-    if (storeRef) {
-      storeRef.clearRecentProjects();
-      return true;
-    }
-    return false;
-  });
-  
-  console.log('[IPC] 项目管理处理器已注册');
-}
-
-// ============================================
-// 剪贴板处理器
-// ============================================
-
-/**
- * 注册剪贴板相关处理器
- */
-function registerClipboardHandlers() {
-  // 读取剪贴板文本
-  ipcMain.handle('read-clipboard', async (event) => {
-    return clipboard.readText();
-  });
-  
-  // 写入剪贴板文本
-  ipcMain.on('write-clipboard', (event, text) => {
-    clipboard.writeText(text);
-  });
-  
-  // 读取剪贴板图片
-  ipcMain.handle('read-clipboard-image', async (event) => {
-    const image = clipboard.readImage();
-    if (image.isEmpty()) {
-      return null;
-    }
-    return image.toDataURL();
-  });
-  
-  // 写入剪贴板图片
-  ipcMain.on('write-clipboard-image', (event, base64Image) => {
-    const image = nativeImage.createFromDataURL(base64Image);
-    clipboard.writeImage(image);
-  });
-  
-  // 清空剪贴板
-  ipcMain.on('clear-clipboard', (event) => {
-    clipboard.clear();
-  });
-  
-  // 检查剪贴板是否有内容
-  ipcMain.handle('clipboard-has-content', async (event) => {
-    return !clipboard.readText().isEmpty() || !clipboard.readImage().isEmpty();
-  });
-  
-  console.log('[IPC] 剪贴板处理器已注册');
-}
-
-// ============================================
-// 通知处理器
-// ============================================
-
-/**
- * 注册通知相关处理器
- */
-function registerNotificationHandlers() {
-  // 显示通知
-  ipcMain.handle('show-notification', async (event, options) => {
-    if (!Notification.isSupported()) {
-      console.warn('[IPC] 系统不支持通知');
-      return false;
-    }
-    
-    const notification = new Notification({
-      title: options.title || '云书',
-      body: options.body || '',
-      icon: options.icon ? nativeImage.createFromPath(options.icon) : undefined,
-      silent: options.silent || false,
-    });
-    
-    notification.on('click', () => {
-      // 点击通知时显示窗口
-      if (mainWindowRef) {
-        if (mainWindowRef.isMinimized()) {
-          mainWindowRef.restore();
-        }
-        mainWindowRef.show();
-        mainWindowRef.focus();
-      }
-    });
-    
-    notification.show();
-    return true;
-  });
-  
-  // 检查通知权限
-  ipcMain.handle('check-notification-permission', async (event) => {
-    // Electron中通知权限由系统管理
-    return Notification.isSupported() ? 'granted' : 'denied';
-  });
-  
-  // 请求通知权限
-  ipcMain.handle('request-notification-permission', async (event) => {
-    // Electron中无法主动请求权限
-    return Notification.isSupported() ? 'granted' : 'denied';
-  });
-  
-  console.log('[IPC] 通知处理器已注册');
-}
-
-// ============================================
-// 存储处理器
-// ============================================
-
-/**
- * 注册存储相关处理器
- */
-function registerStoreHandlers() {
-  // 获取存储值
-  ipcMain.handle('store-get', async (event, key, defaultValue) => {
-    if (storeRef) {
-      const store = storeRef.getStore();
-      return store.get(key, defaultValue);
-    }
-    return defaultValue;
-  });
-  
-  // 设置存储值
-  ipcMain.handle('store-set', async (event, key, value) => {
-    if (storeRef) {
-      const store = storeRef.getStore();
-      store.set(key, value);
-      return true;
-    }
-    return false;
-  });
-  
-  // 删除存储值
-  ipcMain.handle('store-delete', async (event, key) => {
-    if (storeRef) {
-      const store = storeRef.getStore();
-      store.delete(key);
-      return true;
-    }
-    return false;
-  });
-  
-  // 检查键是否存在
-  ipcMain.handle('store-has', async (event, key) => {
-    if (storeRef) {
-      const store = storeRef.getStore();
-      return store.has(key);
-    }
-    return false;
-  });
-  
-  // 清空所有存储
-  ipcMain.handle('store-clear', async (event) => {
-    if (storeRef) {
-      const store = storeRef.getStore();
-      store.clear();
-      return true;
-    }
-    return false;
-  });
-  
-  // 获取所有键
-  ipcMain.handle('store-keys', async (event) => {
-    if (storeRef) {
-      const store = storeRef.getStore();
-      const config = store.getAll();
-      return Object.keys(config);
-    }
-    return [];
-  });
-  
-  console.log('[IPC] 存储处理器已注册');
-}
-
-// ============================================
-// 窗口控制处理器
-// ============================================
-
-/**
- * 注册窗口控制相关处理器
- */
-function registerWindowHandlers() {
-  // 最小化窗口
-  ipcMain.on('window-minimize', (event) => {
-    if (mainWindowRef) {
-      mainWindowRef.minimize();
-    }
-  });
-  
-  // 最大化/取消最大化窗口
-  ipcMain.on('window-maximize', (event) => {
-    if (mainWindowRef) {
-      if (mainWindowRef.isMaximized()) {
-        mainWindowRef.unmaximize();
-      } else {
-        mainWindowRef.maximize();
-      }
-    }
-  });
-  
-  // 关闭窗口
-  ipcMain.on('window-close', (event) => {
-    if (mainWindowRef) {
-      mainWindowRef.close();
-    }
-  });
-  
-  // 恢复窗口
-  ipcMain.on('window-restore', (event) => {
-    if (mainWindowRef) {
-      mainWindowRef.restore();
-      mainWindowRef.show();
-      mainWindowRef.focus();
-    }
-  });
-  
-  // 切换全屏
-  ipcMain.on('window-toggle-fullscreen', (event) => {
-    if (mainWindowRef) {
-      mainWindowRef.setFullScreen(!mainWindowRef.isFullScreen());
-    }
-  });
-  
-  // 获取窗口状态
-  ipcMain.handle('get-window-state', async (event) => {
-    if (mainWindowRef) {
-      return {
-        isMaximized: mainWindowRef.isMaximized(),
-        isMinimized: mainWindowRef.isMinimized(),
-        isFullScreen: mainWindowRef.isFullScreen(),
-        isVisible: mainWindowRef.isVisible(),
-        isFocused: mainWindowRef.isFocused(),
-      };
-    }
-    return null;
-  });
-  
-  // 设置窗口标题
-  ipcMain.on('set-window-title', (event, title) => {
-    if (mainWindowRef) {
-      mainWindowRef.setTitle(title);
-    }
-  });
-  
-  console.log('[IPC] 窗口控制处理器已注册');
-}
-
-// ============================================
-// 系统信息处理器
-// ============================================
-
-/**
- * 注册系统信息相关处理器
- */
-function registerSystemHandlers() {
-  // 获取应用版本
-  ipcMain.handle('get-app-version', async (event) => {
-    return app.getVersion();
-  });
-  
-  // 获取应用路径
-  ipcMain.handle('get-app-path', async (event, name) => {
-    try {
-      return app.getPath(name || 'userData');
-    } catch (error) {
-      console.error('[IPC] 获取应用路径失败:', error);
-      return null;
-    }
-  });
-  
-  // 获取应用信息
-  ipcMain.handle('get-app-info', async (event) => {
-    return {
-      name: app.name,
-      version: app.getVersion(),
-      platform: process.platform,
-      arch: process.arch,
-      isPackaged: app.isPackaged,
-      appPath: app.getAppPath(),
-      userDataPath: app.getPath('userData'),
-    };
-  });
-  
-  // 获取系统语言
-  ipcMain.handle('get-locale', async (event) => {
-    return app.getLocale();
-  });
-  
-  // 打开外部链接
-  ipcMain.on('open-external', (event, url) => {
-    shell.openExternal(url);
-  });
-  
-  // 在文件管理器中显示
-  ipcMain.handle('show-item-in-folder', async (event, filePath) => {
-    shell.showItemInFolder(filePath);
-    return true;
-  });
-  
-  // 打开路径
-  ipcMain.handle('open-path', async (event, filePath) => {
-    shell.openPath(filePath);
-    return true;
-  });
-  
-  console.log('[IPC] 系统信息处理器已注册');
-}
-
-// ============================================
-// 快捷键处理器
-// ============================================
-
-/**
- * 注册快捷键相关处理器
- */
-function registerShortcutHandlers() {
-  const { globalShortcut } = require('electron');
-  
-  // 存储快捷键回调ID映射
-  const shortcutCallbacks = new Map();
-  
-  // 注册全局快捷键
-  ipcMain.handle('register-shortcut', async (event, accelerator, callbackId) => {
-    try {
-      // 检查是否已注册
-      if (globalShortcut.isRegistered(accelerator)) {
-        console.warn('[IPC] 快捷键已注册:', accelerator);
-        return false;
-      }
-      
-      // 注册快捷键
-      const result = globalShortcut.register(accelerator, () => {
-        // 发送事件到渲染进程
-        if (mainWindowRef) {
-          mainWindowRef.webContents.send('shortcut-triggered', callbackId);
-        }
-      });
-      
-      if (result) {
-        shortcutCallbacks.set(accelerator, callbackId);
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('[IPC] 注册快捷键失败:', error);
-      return false;
-    }
-  });
-  
-  // 注销全局快捷键
-  ipcMain.handle('unregister-shortcut', async (event, accelerator) => {
-    try {
-      globalShortcut.unregister(accelerator);
-      shortcutCallbacks.delete(accelerator);
-      return true;
-    } catch (error) {
-      console.error('[IPC] 注销快捷键失败:', error);
-      return false;
-    }
-  });
-  
-  // 注销所有快捷键
-  ipcMain.on('unregister-all-shortcuts', (event) => {
-    globalShortcut.unregisterAll();
-    shortcutCallbacks.clear();
-  });
-  
-  console.log('[IPC] 快捷键处理器已注册');
-}
-
-// ============================================
-// 自动更新处理器
-// ============================================
-
-/**
- * 注册自动更新相关处理器
- */
-function registerUpdateHandlers() {
-  // 检查更新
-  ipcMain.handle('check-for-updates', async (event) => {
-    // 注意：需要安装 electron-updater
-    // const { autoUpdater } = require('electron-updater');
-    
-    try {
-      // 模拟检查更新
-      // 实际使用时取消注释以下代码
-      // const result = await autoUpdater.checkForUpdates();
-      // return result;
-      
-      console.log('[IPC] 检查更新（模拟）');
-      return {
-        available: false,
-        version: app.getVersion(),
-        releaseDate: new Date().toISOString(),
-      };
-    } catch (error) {
-      console.error('[IPC] 检查更新失败:', error);
-      throw error;
-    }
-  });
-  
-  // 下载更新
-  ipcMain.handle('download-update', async (event) => {
-    // 注意：需要安装 electron-updater
-    // const { autoUpdater } = require('electron-updater');
-    
-    try {
-      // 实际使用时取消注释以下代码
-      // await autoUpdater.downloadUpdate();
-      
-      console.log('[IPC] 下载更新（模拟）');
-      return true;
-    } catch (error) {
-      console.error('[IPC] 下载更新失败:', error);
-      throw error;
-    }
-  });
-  
-  // 安装更新并重启
-  ipcMain.on('quit-and-install', (event) => {
-    // 注意：需要安装 electron-updater
-    // const { autoUpdater } = require('electron-updater');
-    // autoUpdater.quitAndInstall();
-    
-    console.log('[IPC] 安装更新并重启（模拟）');
-  });
-  
-  console.log('[IPC] 自动更新处理器已注册');
-}
-
-// ============================================
-// 工具函数
-// ============================================
-
-/**
- * 设置主窗口引用
- * @param {BrowserWindow} mainWindow - 主窗口实例
- */
-function setMainWindow(mainWindow) {
-  mainWindowRef = mainWindow;
-}
-
-/**
- * 设置存储模块引用
- * @param {Object} store - 存储模块
- */
-function setStore(store) {
-  storeRef = store;
-}
-
-/**
- * 设置菜单模块引用
- * @param {Object} menu - 菜单模块
- */
-function setMenu(menu) {
-  menuRef = menu;
-}
-
-/**
- * 设置托盘模块引用
- * @param {Object} tray - 托盘模块
- */
-function setTray(tray) {
-  trayRef = tray;
-}
-
-/**
- * 发送消息到渲染进程
- * @param {string} channel - 频道名称
- * @param {*} data - 数据
- */
-function sendToRenderer(channel, data) {
-  if (mainWindowRef && mainWindowRef.webContents) {
-    mainWindowRef.webContents.send(channel, data);
   }
+
+  return result.filePaths;
+}
+
+/**
+ * 保存文件对话框
+ * @param {Object} options - 对话框选项
+ * @returns {Promise<string|null>} 保存的文件路径
+ */
+async function handleSaveFileDialog(event, options = {}) {
+  const mainWindow = BrowserWindow.fromWebContents(event.sender);
+
+  const defaultOptions = {
+    title: '保存文件',
+    filters: DEFAULT_FILTERS.all,
+  };
+
+  const result = await dialog.showSaveDialog(mainWindow, {
+    ...defaultOptions,
+    ...options,
+  });
+
+  if (result.canceled) {
+    return null;
+  }
+
+  return result.filePath;
+}
+
+/**
+ * 打开文件夹对话框
+ * @param {Object} options - 对话框选项
+ * @returns {Promise<string[]>} 选择的文件夹路径数组
+ */
+async function handleOpenDirectoryDialog(event, options = {}) {
+  const mainWindow = BrowserWindow.fromWebContents(event.sender);
+
+  const defaultOptions = {
+    title: '选择文件夹',
+    properties: ['openDirectory'],
+  };
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    ...defaultOptions,
+    ...options,
+  });
+
+  if (result.canceled) {
+    return [];
+  }
+
+  return result.filePaths;
+}
+
+// ============================================
+// 文件操作
+// ============================================
+
+/**
+ * 读取文件
+ * @param {string} filePath - 文件路径
+ * @param {Object} options - 读取选项
+ * @returns {Promise<string|Buffer>} 文件内容
+ */
+async function handleReadFile(event, filePath, options = {}) {
+  try {
+    const encoding = options.encoding || 'utf-8';
+    const content = await fs.readFile(filePath, { encoding });
+    return content;
+  } catch (error) {
+    console.error('[IPC] 读取文件失败:', error);
+    throw new Error(`读取文件失败: ${error.message}`);
+  }
+}
+
+/**
+ * 写入文件
+ * @param {string} filePath - 文件路径
+ * @param {string|Buffer} content - 文件内容
+ * @param {Object} options - 写入选项
+ * @returns {Promise<boolean>} 是否成功
+ */
+async function handleWriteFile(event, filePath, content, options = {}) {
+  try {
+    const encoding = options.encoding || 'utf-8';
+
+    // 确保目录存在
+    const dir = path.dirname(filePath);
+    await fs.mkdir(dir, { recursive: true });
+
+    await fs.writeFile(filePath, content, { encoding });
+    return true;
+  } catch (error) {
+    console.error('[IPC] 写入文件失败:', error);
+    throw new Error(`写入文件失败: ${error.message}`);
+  }
+}
+
+/**
+ * 检查文件是否存在
+ * @param {string} filePath - 文件路径
+ * @returns {Promise<boolean>} 是否存在
+ */
+async function handleFileExists(event, filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 删除文件
+ * @param {string} filePath - 文件路径
+ * @returns {Promise<boolean>} 是否成功
+ */
+async function handleDeleteFile(event, filePath) {
+  try {
+    await fs.unlink(filePath);
+    return true;
+  } catch (error) {
+    console.error('[IPC] 删除文件失败:', error);
+    throw new Error(`删除文件失败: ${error.message}`);
+  }
+}
+
+/**
+ * 重命名文件
+ * @param {string} oldPath - 原路径
+ * @param {string} newPath - 新路径
+ * @returns {Promise<boolean>} 是否成功
+ */
+async function handleRenameFile(event, oldPath, newPath) {
+  try {
+    await fs.rename(oldPath, newPath);
+    return true;
+  } catch (error) {
+    console.error('[IPC] 重命名文件失败:', error);
+    throw new Error(`重命名文件失败: ${error.message}`);
+  }
+}
+
+/**
+ * 复制文件
+ * @param {string} sourcePath - 源路径
+ * @param {string} destPath - 目标路径
+ * @returns {Promise<boolean>} 是否成功
+ */
+async function handleCopyFile(event, sourcePath, destPath) {
+  try {
+    // 确保目标目录存在
+    const dir = path.dirname(destPath);
+    await fs.mkdir(dir, { recursive: true });
+
+    await fs.copyFile(sourcePath, destPath);
+    return true;
+  } catch (error) {
+    console.error('[IPC] 复制文件失败:', error);
+    throw new Error(`复制文件失败: ${error.message}`);
+  }
+}
+
+/**
+ * 获取文件信息
+ * @param {string} filePath - 文件路径
+ * @returns {Promise<Object>} 文件信息
+ */
+async function handleGetFileInfo(event, filePath) {
+  try {
+    const stats = await fs.stat(filePath);
+    return {
+      path: filePath,
+      name: path.basename(filePath),
+      size: stats.size,
+      created: stats.birthtime,
+      modified: stats.mtime,
+      isFile: stats.isFile(),
+      isDirectory: stats.isDirectory(),
+    };
+  } catch (error) {
+    console.error('[IPC] 获取文件信息失败:', error);
+    throw new Error(`获取文件信息失败: ${error.message}`);
+  }
+}
+
+/**
+ * 读取目录
+ * @param {string} dirPath - 目录路径
+ * @returns {Promise<Object[]>} 目录内容
+ */
+async function handleReadDirectory(event, dirPath) {
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    return entries.map((entry) => ({
+      name: entry.name,
+      path: path.join(dirPath, entry.name),
+      isFile: entry.isFile(),
+      isDirectory: entry.isDirectory(),
+    }));
+  } catch (error) {
+    console.error('[IPC] 读取目录失败:', error);
+    throw new Error(`读取目录失败: ${error.message}`);
+  }
+}
+
+// ============================================
+// 剪贴板操作
+// ============================================
+
+/**
+ * 读取剪贴板文本
+ * @returns {string} 剪贴板内容
+ */
+function handleReadClipboard() {
+  return clipboard.readText();
+}
+
+/**
+ * 写入剪贴板文本
+ * @param {string} text - 要写入的文本
+ */
+function handleWriteClipboard(event, text) {
+  clipboard.writeText(text);
+}
+
+/**
+ * 读取剪贴板 HTML
+ * @returns {string} HTML 内容
+ */
+function handleReadClipboardHTML() {
+  return clipboard.readHTML();
+}
+
+/**
+ * 写入剪贴板 HTML
+ * @param {string} html - HTML 内容
+ * @param {string} text - 纯文本内容
+ */
+function handleWriteClipboardHTML(event, html, text) {
+  clipboard.write({ text, html });
+}
+
+/**
+ * 清空剪贴板
+ */
+function handleClearClipboard() {
+  clipboard.clear();
+}
+
+// ============================================
+// 系统通知
+// ============================================
+
+/**
+ * 显示系统通知
+ * @param {Object} options - 通知选项
+ */
+function handleShowNotification(event, options) {
+  const { title = '云书', body = '', icon = null } = options;
+
+  // 使用主进程的通知
+  const { Notification } = require('electron');
+
+  if (Notification.isSupported()) {
+    const notification = new Notification({
+      title,
+      body,
+      icon: icon || undefined,
+    });
+
+    notification.on('click', () => {
+      const mainWindow = BrowserWindow.fromWebContents(event.sender);
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+
+    notification.show();
+  }
+}
+
+// ============================================
+// 窗口控制
+// ============================================
+
+/**
+ * 最小化窗口
+ */
+function handleMinimizeWindow(event) {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window) {
+    window.minimize();
+  }
+}
+
+/**
+ * 最大化/取消最大化窗口
+ */
+function handleMaximizeWindow(event) {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window) {
+    if (window.isMaximized()) {
+      window.unmaximize();
+    } else {
+      window.maximize();
+    }
+  }
+}
+
+/**
+ * 关闭窗口
+ */
+function handleCloseWindow(event) {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window) {
+    window.close();
+  }
+}
+
+/**
+ * 恢复窗口
+ */
+function handleRestoreWindow(event) {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window) {
+    if (window.isMinimized()) {
+      window.restore();
+    }
+    window.show();
+    window.focus();
+  }
+}
+
+/**
+ * 切换全屏
+ */
+function handleToggleFullscreen(event) {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window) {
+    window.setFullScreen(!window.isFullScreen());
+  }
+}
+
+/**
+ * 获取窗口状态
+ * @returns {Object} 窗口状态
+ */
+function handleGetWindowState(event) {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (!window) return null;
+
+  return {
+    isMaximized: window.isMaximized(),
+    isMinimized: window.isMinimized(),
+    isFullScreen: window.isFullScreen(),
+    isFocused: window.isFocused(),
+    isVisible: window.isVisible(),
+  };
+}
+
+// ============================================
+// 应用信息
+// ============================================
+
+/**
+ * 获取应用版本
+ * @returns {string} 应用版本
+ */
+function handleGetAppVersion() {
+  const { app } = require('electron');
+  return app.getVersion();
+}
+
+/**
+ * 获取应用路径
+ * @param {string} name - 路径名称
+ * @returns {string} 路径
+ */
+function handleGetAppPath(event, name) {
+  const { app } = require('electron');
+  return app.getPath(name);
+}
+
+/**
+ * 获取系统信息
+ * @returns {Object} 系统信息
+ */
+function handleGetSystemInfo() {
+  return {
+    platform: process.platform,
+    arch: process.arch,
+    versions: process.versions,
+    env: process.env.NODE_ENV,
+  };
+}
+
+// ============================================
+// 外部链接
+// ============================================
+
+/**
+ * 在默认浏览器中打开外部链接
+ * @param {string} url - 链接地址
+ */
+function handleOpenExternal(event, url) {
+  shell.openExternal(url);
+}
+
+/**
+ * 在文件管理器中显示文件
+ * @param {string} filePath - 文件路径
+ */
+function handleShowItemInFolder(event, filePath) {
+  shell.showItemInFolder(filePath);
+}
+
+/**
+ * 打开文件
+ * @param {string} filePath - 文件路径
+ */
+function handleOpenPath(event, filePath) {
+  shell.openPath(filePath);
+}
+
+// ============================================
+// 数据存储（使用 electron-store）
+// ============================================
+
+let store = null;
+
+/**
+ * 初始化存储
+ */
+function initStore() {
+  try {
+    const Store = require('electron-store');
+    store = new Store({
+      name: 'yunshu-data',
+      defaults: {
+        projects: [],
+        settings: {},
+        recentProjects: [],
+      },
+    });
+    console.log('[IPC] 存储已初始化');
+  } catch (error) {
+    console.error('[IPC] 初始化存储失败:', error);
+  }
+}
+
+/**
+ * 获取存储值
+ * @param {string} key - 键名
+ * @param {*} defaultValue - 默认值
+ * @returns {*} 存储值
+ */
+function handleStoreGet(event, key, defaultValue) {
+  if (!store) return defaultValue;
+  return store.get(key, defaultValue);
+}
+
+/**
+ * 设置存储值
+ * @param {string} key - 键名
+ * @param {*} value - 值
+ */
+function handleStoreSet(event, key, value) {
+  if (!store) return;
+  store.set(key, value);
+}
+
+/**
+ * 删除存储值
+ * @param {string} key - 键名
+ */
+function handleStoreDelete(event, key) {
+  if (!store) return;
+  store.delete(key);
+}
+
+/**
+ * 清空存储
+ */
+function handleStoreClear() {
+  if (!store) return;
+  store.clear();
+}
+
+// ============================================
+// 最近项目
+// ============================================
+
+/**
+ * 获取最近打开的项目列表
+ * @returns {Array} 项目列表
+ */
+function handleGetRecentProjects() {
+  if (!store) return [];
+  return store.get('recentProjects', []);
+}
+
+/**
+ * 添加最近打开的项目
+ * @param {Object} project - 项目信息
+ */
+function handleAddRecentProject(event, project) {
+  if (!store) return;
+
+  const recentProjects = store.get('recentProjects', []);
+
+  // 移除重复项
+  const filtered = recentProjects.filter((p) => p.path !== project.path);
+
+  // 添加到开头
+  filtered.unshift({
+    ...project,
+    lastOpened: Date.now(),
+  });
+
+  // 限制数量
+  const limited = filtered.slice(0, 20);
+
+  store.set('recentProjects', limited);
+}
+
+/**
+ * 清除最近打开的项目列表
+ */
+function handleClearRecentProjects() {
+  if (!store) return;
+  store.set('recentProjects', []);
+}
+
+// ============================================
+// 窗口管理
+// ============================================
+
+/**
+ * 获取所有窗口
+ * @returns {Array} 窗口列表
+ */
+function handleGetAllWindows() {
+  return BrowserWindow.getAllWindows().map((w) => ({
+    id: w.id,
+    title: w.getTitle(),
+    isVisible: w.isVisible(),
+    isMinimized: w.isMinimized(),
+    isFocused: w.isFocused(),
+  }));
+}
+
+/**
+ * 聚焦窗口
+ * @param {number} windowId - 窗口ID
+ */
+function handleFocusWindow(event, windowId) {
+  const window = BrowserWindow.fromId(windowId);
+  if (window) {
+    if (window.isMinimized()) {
+      window.restore();
+    }
+    window.show();
+    window.focus();
+  }
+}
+
+/**
+ * 创建子窗口
+ * @param {Object} options - 窗口选项
+ * @returns {number} 窗口ID
+ */
+function handleCreateChildWindow(event, options = {}) {
+  const { createChildWindow } = require('./main');
+  const childWindow = createChildWindow(options);
+  return childWindow.id;
+}
+
+// ============================================
+// 导出功能
+// ============================================
+
+/**
+ * 导出为 TXT
+ * @param {Object} options - 导出选项
+ */
+async function handleExportTxt(event, options) {
+  const { content, defaultPath } = options;
+  const filePath = await handleSaveFileDialog(event, {
+    title: '导出为 TXT',
+    defaultPath,
+    filters: DEFAULT_FILTERS.text,
+  });
+
+  if (!filePath) return null;
+
+  await handleWriteFile(event, filePath, content);
+  return filePath;
+}
+
+/**
+ * 导出为 Markdown
+ * @param {Object} options - 导出选项
+ */
+async function handleExportMarkdown(event, options) {
+  const { content, defaultPath } = options;
+  const filePath = await handleSaveFileDialog(event, {
+    title: '导出为 Markdown',
+    defaultPath,
+    filters: DEFAULT_FILTERS.markdown,
+  });
+
+  if (!filePath) return null;
+
+  await handleWriteFile(event, filePath, content);
+  return filePath;
+}
+
+// ============================================
+// 注册所有 IPC 处理器
+// ============================================
+
+/**
+ * 注册所有 IPC 处理器
+ * @param {Object} deps - 依赖对象
+ */
+function registerIpcHandlers(deps = {}) {
+  // 初始化存储
+  initStore();
+
+  // 文件对话框
+  ipcMain.handle('dialog:openFile', handleOpenFileDialog);
+  ipcMain.handle('dialog:saveFile', handleSaveFileDialog);
+  ipcMain.handle('dialog:openDirectory', handleOpenDirectoryDialog);
+
+  // 文件操作
+  ipcMain.handle('file:read', handleReadFile);
+  ipcMain.handle('file:write', handleWriteFile);
+  ipcMain.handle('file:exists', handleFileExists);
+  ipcMain.handle('file:delete', handleDeleteFile);
+  ipcMain.handle('file:rename', handleRenameFile);
+  ipcMain.handle('file:copy', handleCopyFile);
+  ipcMain.handle('file:getInfo', handleGetFileInfo);
+  ipcMain.handle('file:readDirectory', handleReadDirectory);
+
+  // 剪贴板
+  ipcMain.handle('clipboard:readText', handleReadClipboard);
+  ipcMain.on('clipboard:writeText', handleWriteClipboard);
+  ipcMain.handle('clipboard:readHTML', handleReadClipboardHTML);
+  ipcMain.on('clipboard:writeHTML', handleWriteClipboardHTML);
+  ipcMain.on('clipboard:clear', handleClearClipboard);
+
+  // 系统通知
+  ipcMain.on('notification:show', handleShowNotification);
+
+  // 窗口控制
+  ipcMain.on('window:minimize', handleMinimizeWindow);
+  ipcMain.on('window:maximize', handleMaximizeWindow);
+  ipcMain.on('window:close', handleCloseWindow);
+  ipcMain.on('window:restore', handleRestoreWindow);
+  ipcMain.on('window:toggleFullscreen', handleToggleFullscreen);
+  ipcMain.handle('window:getState', handleGetWindowState);
+
+  // 应用信息
+  ipcMain.handle('app:getVersion', handleGetAppVersion);
+  ipcMain.handle('app:getPath', handleGetAppPath);
+  ipcMain.handle('app:getSystemInfo', handleGetSystemInfo);
+
+  // 外部链接
+  ipcMain.on('shell:openExternal', handleOpenExternal);
+  ipcMain.on('shell:showItemInFolder', handleShowItemInFolder);
+  ipcMain.on('shell:openPath', handleOpenPath);
+
+  // 存储
+  ipcMain.handle('store:get', handleStoreGet);
+  ipcMain.on('store:set', handleStoreSet);
+  ipcMain.on('store:delete', handleStoreDelete);
+  ipcMain.on('store:clear', handleStoreClear);
+
+  // 最近项目
+  ipcMain.handle('recent:getProjects', handleGetRecentProjects);
+  ipcMain.handle('recent:addProject', handleAddRecentProject);
+  ipcMain.on('recent:clearProjects', handleClearRecentProjects);
+
+  // 窗口管理
+  ipcMain.handle('windows:getAll', handleGetAllWindows);
+  ipcMain.on('windows:focus', handleFocusWindow);
+  ipcMain.handle('windows:createChild', handleCreateChildWindow);
+
+  // 导出
+  ipcMain.handle('export:txt', handleExportTxt);
+  ipcMain.handle('export:markdown', handleExportMarkdown);
+
+  console.log('[IPC] 所有 IPC 处理器已注册');
 }
 
 // ============================================
@@ -896,15 +781,50 @@ function sendToRenderer(channel, data) {
 // ============================================
 
 module.exports = {
-  // 主函数
   registerIpcHandlers,
-  
-  // 设置引用
-  setMainWindow,
-  setStore,
-  setMenu,
-  setTray,
-  
-  // 工具函数
-  sendToRenderer,
+
+  // 文件对话框
+  handleOpenFileDialog,
+  handleSaveFileDialog,
+  handleOpenDirectoryDialog,
+
+  // 文件操作
+  handleReadFile,
+  handleWriteFile,
+  handleFileExists,
+  handleDeleteFile,
+  handleRenameFile,
+  handleCopyFile,
+  handleGetFileInfo,
+  handleReadDirectory,
+
+  // 剪贴板
+  handleReadClipboard,
+  handleWriteClipboard,
+
+  // 系统通知
+  handleShowNotification,
+
+  // 窗口控制
+  handleMinimizeWindow,
+  handleMaximizeWindow,
+  handleCloseWindow,
+  handleRestoreWindow,
+  handleToggleFullscreen,
+
+  // 应用信息
+  handleGetAppVersion,
+  handleGetAppPath,
+
+  // 外部链接
+  handleOpenExternal,
+
+  // 存储
+  initStore,
+  handleStoreGet,
+  handleStoreSet,
+
+  // 最近项目
+  handleGetRecentProjects,
+  handleAddRecentProject,
 };

@@ -1,20 +1,22 @@
 /**
- * 云书 - Electron 系统托盘模块
- * 
+ * 云书 - Electron 系统托盘模块（增强版）
+ *
  * 功能说明：
- * - 创建和管理系统托盘图标
- * - 右键菜单（新建项目、快速写作、显示/隐藏窗口、退出）
- * - 托盘点击行为（显示/隐藏窗口）
+ * - 托盘图标状态（正常/写作中/有通知）
+ * - 托盘菜单完善
  * - 托盘通知（写作提醒、目标达成）
- * - 托盘图标状态变化（正常/有未读/写作中）
- * 
+ * - 点击托盘图标显示/隐藏窗口
+ * - 托盘提示信息
+ * - 托盘右键菜单
+ * - 托盘气球通知（Windows）
+ *
  * 支持平台：
- * - Windows: 系统托盘
+ * - Windows: 系统托盘 + 气球通知
  * - macOS: 菜单栏图标
  * - Linux: 系统托盘
  */
 
-const { Tray, Menu, nativeImage, app, Notification } = require('electron');
+const { Tray, Menu, app, nativeImage, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -28,121 +30,121 @@ let tray = null;
 /** @type {BrowserWindow|null} 主窗口引用 */
 let mainWindowRef = null;
 
-/** @type {string} 当前托盘图标状态 */
-let currentIconState = 'normal';
+/** @type {string} 当前托盘状态 */
+let currentTrayState = 'normal'; // normal, writing, notification
+
+/** @type {Object} 托盘配置 */
+const trayConfig = {
+  tooltip: '云书 - AI智能小说创作平台',
+  iconSize: 16,
+  showBalloon: true,
+  balloonTimeout: 5000,
+};
 
 /** @type {Object} 托盘图标缓存 */
-const iconCache = {};
+const iconCache = {
+  normal: null,
+  writing: null,
+  notification: null,
+};
 
 // ============================================
-// 托盘图标管理
+// 图标路径
 // ============================================
 
 /**
- * 获取托盘图标路径
- * @param {string} state - 图标状态 ('normal' | 'unread' | 'writing')
- * @returns {nativeImage} 图标对象
+ * 获取图标路径
+ * @param {string} type - 图标类型
+ * @returns {string|null} 图标路径
  */
-function getTrayIcon(state = 'normal') {
-  // 如果已缓存，直接返回
+function getIconPath(type = 'normal') {
+  // 根据平台选择图标
+  const platform = process.platform;
+  const iconDir = path.join(__dirname, '../public/icons');
+
+  // 图标文件映射
+  const iconFiles = {
+    win32: {
+      normal: 'tray-icon.ico',
+      writing: 'tray-icon-writing.ico',
+      notification: 'tray-icon-notification.ico',
+    },
+    darwin: {
+      normal: 'tray-iconTemplate.png',
+      writing: 'tray-icon-writingTemplate.png',
+      notification: 'tray-icon-notificationTemplate.png',
+    },
+    linux: {
+      normal: 'tray-icon.png',
+      writing: 'tray-icon-writing.png',
+      notification: 'tray-icon-notification.png',
+    },
+  };
+
+  const files = iconFiles[platform] || iconFiles.linux;
+  const iconPath = path.join(iconDir, files[type] || files.normal);
+
+  // 检查文件是否存在
+  if (fs.existsSync(iconPath)) {
+    return iconPath;
+  }
+
+  // 尝试使用备选图标
+  const fallbackPaths = [
+    path.join(iconDir, 'icon-16x16.png'),
+    path.join(iconDir, 'icon-32x32.png'),
+    path.join(__dirname, '../public/favicon.svg'),
+  ];
+
+  for (const fallback of fallbackPaths) {
+    if (fs.existsSync(fallback)) {
+      return fallback;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 加载托盘图标
+ * @param {string} state - 状态类型
+ * @returns {nativeImage|null} 图标对象
+ */
+function loadTrayIcon(state = 'normal') {
+  // 检查缓存
   if (iconCache[state]) {
     return iconCache[state];
   }
 
-  // 图标基础路径
-  const iconsDir = path.join(__dirname, '../public/icons');
-  
-  // 根据状态选择图标
-  const iconFiles = {
-    normal: 'tray-icon.png',
-    unread: 'tray-icon-unread.png',
-    writing: 'tray-icon-writing.png',
-  };
-
-  // 平台特定处理
-  const platform = process.platform;
-  
-  let iconPath;
-  
-  if (platform === 'darwin') {
-    // macOS: 使用模板图标（自动适配深色/浅色模式）
-    iconPath = path.join(iconsDir, 'tray-iconTemplate.png');
-    
-    // 如果模板图标不存在，尝试普通图标
-    if (!fs.existsSync(iconPath)) {
-      iconPath = path.join(iconsDir, iconFiles[state] || iconFiles.normal);
-    }
-  } else {
-    // Windows/Linux: 使用普通图标
-    iconPath = path.join(iconsDir, iconFiles[state] || iconFiles.normal);
+  const iconPath = getIconPath(state);
+  if (!iconPath) {
+    console.warn('[Tray] 未找到托盘图标');
+    return null;
   }
 
-  // 检查图标文件是否存在
-  if (fs.existsSync(iconPath)) {
-    let icon = nativeImage.createFromPath(iconPath);
-    
-    // macOS: 设置为模板图标
-    if (platform === 'darwin') {
-      icon = icon.resize({ width: 16, height: 16 });
-      // 如果是模板图标，设置模板属性
-      if (iconPath.includes('Template')) {
-        icon.setTemplateImage(true);
-      }
+  try {
+    let icon;
+
+    if (iconPath.endsWith('.svg')) {
+      // SVG 图标需要特殊处理
+      icon = nativeImage.createFromPath(iconPath);
+    } else {
+      icon = nativeImage.createFromPath(iconPath);
     }
-    
-    // Windows: 确保图标大小合适
-    if (platform === 'win32') {
-      icon = icon.resize({ width: 16, height: 16 });
+
+    // macOS: 设置图标为模板（自动适应深色模式）
+    if (process.platform === 'darwin' && state === 'normal') {
+      icon.setTemplateImage(true);
     }
-    
+
     // 缓存图标
     iconCache[state] = icon;
+
     return icon;
+  } catch (error) {
+    console.error('[Tray] 加载图标失败:', error);
+    return null;
   }
-
-  // 如果图标文件不存在，创建一个简单的默认图标
-  return createDefaultIcon(state);
-}
-
-/**
- * 创建默认托盘图标
- * @param {string} state - 图标状态
- * @returns {nativeImage} 图标对象
- */
-function createDefaultIcon(state = 'normal') {
-  // 根据状态选择颜色
-  const colors = {
-    normal: '#4A90D9',    // 蓝色 - 正常状态
-    unread: '#FF9500',    // 橙色 - 有未读消息
-    writing: '#34C759',   // 绿色 - 写作中
-  };
-
-  const color = colors[state] || colors.normal;
-  
-  // 创建一个简单的SVG图标
-  const svg = `
-    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="8" cy="8" r="7" fill="${color}"/>
-      <text x="8" y="11" font-size="8" fill="white" text-anchor="middle" font-family="Arial">云</text>
-    </svg>
-  `;
-
-  const icon = nativeImage.createFromBuffer(Buffer.from(svg));
-  iconCache[state] = icon;
-  return icon;
-}
-
-/**
- * 更新托盘图标
- * @param {string} state - 图标状态
- */
-function updateTrayIconState(state) {
-  if (!tray) return;
-  
-  currentIconState = state;
-  tray.setImage(getTrayIcon(state));
-  
-  console.log('[Tray] 图标状态已更新:', state);
 }
 
 // ============================================
@@ -150,85 +152,141 @@ function updateTrayIconState(state) {
 // ============================================
 
 /**
- * 创建托盘右键菜单
- * @returns {Menu} 菜单实例
+ * 获取托盘菜单模板
+ * @returns {Array} 菜单模板
  */
-function createTrayMenu() {
-  const isWindowVisible = mainWindowRef && mainWindowRef.isVisible() && !mainWindowRef.isMinimized();
-  
-  const template = [
-    // 新建项目
+function getTrayMenuTemplate() {
+  const isDarwin = process.platform === 'darwin';
+
+  return [
+    // 应用信息
+    {
+      label: '云书',
+      enabled: false,
+    },
+    {
+      label: `版本 ${app.getVersion()}`,
+      enabled: false,
+    },
+    { type: 'separator' },
+
+    // 窗口控制
+    {
+      label: '显示主窗口',
+      click: () => showMainWindow(),
+    },
+    {
+      label: '隐藏主窗口',
+      click: () => hideMainWindow(),
+    },
+    { type: 'separator' },
+
+    // 快速操作
     {
       label: '新建项目',
-      click: () => {
-        showMainWindow();
-        if (mainWindowRef) {
-          mainWindowRef.webContents.send('menu-action', 'new-project');
-        }
-      },
+      accelerator: isDarwin ? 'Cmd+N' : 'Ctrl+N',
+      click: () => sendTrayAction('new-project'),
     },
-    
-    // 打开项目
     {
-      label: '打开项目...',
-      click: () => {
-        showMainWindow();
-        if (mainWindowRef) {
-          mainWindowRef.webContents.send('menu-action', 'open-project');
-        }
-      },
+      label: '保存',
+      accelerator: isDarwin ? 'Cmd+S' : 'Ctrl+S',
+      click: () => sendTrayAction('save-project'),
     },
-    
-    // 分隔线
     { type: 'separator' },
-    
-    // 快速写作
-    {
-      label: '快速写作',
-      click: () => {
-        showMainWindow();
-        if (mainWindowRef) {
-          mainWindowRef.webContents.send('menu-action', 'quick-write');
-        }
-      },
-    },
-    
+
     // 专注模式
     {
       label: '专注模式',
-      click: () => {
-        showMainWindow();
-        if (mainWindowRef) {
-          mainWindowRef.webContents.send('menu-action', 'focus-mode');
-        }
-      },
+      type: 'checkbox',
+      checked: false,
+      click: (menuItem) => sendTrayAction('focus-mode', { enabled: menuItem.checked }),
     },
-    
-    // 分隔线
-    { type: 'separator' },
-    
-    // 显示/隐藏窗口
+
+    // 番茄钟
     {
-      label: isWindowVisible ? '隐藏窗口' : '显示窗口',
-      click: () => {
-        toggleMainWindow();
-      },
+      label: '番茄钟',
+      submenu: [
+        {
+          label: '开始 25 分钟',
+          click: () => sendTrayAction('pomodoro-start', { duration: 25 }),
+        },
+        {
+          label: '开始 45 分钟',
+          click: () => sendTrayAction('pomodoro-start', { duration: 45 }),
+        },
+        {
+          label: '休息 5 分钟',
+          click: () => sendTrayAction('pomodoro-break', { duration: 5 }),
+        },
+        { type: 'separator' },
+        {
+          label: '停止',
+          click: () => sendTrayAction('pomodoro-stop'),
+        },
+      ],
     },
-    
-    // 分隔线
     { type: 'separator' },
-    
-    // 退出应用
+
+    // 写作目标
     {
-      label: '退出云书',
-      click: () => {
-        // 设置退出标志
-        app.isQuitting = true;
-        app.quit();
-      },
+      label: '今日写作目标',
+      submenu: [
+        {
+          label: '1000 字',
+          type: 'radio',
+          checked: false,
+          click: () => sendTrayAction('set-daily-goal', { goal: 1000 }),
+        },
+        {
+          label: '2000 字',
+          type: 'radio',
+          checked: false,
+          click: () => sendTrayAction('set-daily-goal', { goal: 2000 }),
+        },
+        {
+          label: '3000 字',
+          type: 'radio',
+          checked: false,
+          click: () => sendTrayAction('set-daily-goal', { goal: 3000 }),
+        },
+        {
+          label: '5000 字',
+          type: 'radio',
+          checked: false,
+          click: () => sendTrayAction('set-daily-goal', { goal: 5000 }),
+        },
+      ],
+    },
+    { type: 'separator' },
+
+    // 设置
+    {
+      label: '设置...',
+      click: () => sendTrayAction('open-settings'),
+    },
+
+    // 检查更新
+    {
+      label: '检查更新...',
+      click: () => sendTrayAction('check-updates'),
+    },
+    { type: 'separator' },
+
+    // 退出
+    {
+      label: '退出',
+      accelerator: isDarwin ? 'Cmd+Q' : 'Alt+F4',
+      click: () => quitApp(),
     },
   ];
+}
 
+/**
+ * 创建托盘菜单
+ * @returns {Menu} 菜单实例
+ */
+function createTrayMenu() {
+  const template = getTrayMenuTemplate();
   return Menu.buildFromTemplate(template);
 }
 
@@ -236,58 +294,71 @@ function createTrayMenu() {
  * 更新托盘菜单
  */
 function updateTrayMenu() {
-  if (!tray) return;
-  tray.setContextMenu(createTrayMenu());
+  if (tray) {
+    const menu = createTrayMenu();
+    tray.setContextMenu(menu);
+  }
 }
 
 // ============================================
-// 窗口控制
+// 托盘操作
 // ============================================
+
+/**
+ * 发送托盘动作到渲染进程
+ * @param {string} action - 动作名称
+ * @param {Object} data - 附加数据
+ */
+function sendTrayAction(action, data = {}) {
+  if (mainWindowRef && mainWindowRef.webContents) {
+    // 确保窗口可见
+    if (!mainWindowRef.isVisible()) {
+      showMainWindow();
+    }
+    mainWindowRef.webContents.send('tray-action', { action, data });
+  }
+}
 
 /**
  * 显示主窗口
  */
 function showMainWindow() {
-  if (!mainWindowRef) return;
-  
-  // 如果窗口最小化，先恢复
-  if (mainWindowRef.isMinimized()) {
-    mainWindowRef.restore();
+  if (mainWindowRef) {
+    if (mainWindowRef.isMinimized()) {
+      mainWindowRef.restore();
+    }
+    mainWindowRef.show();
+    mainWindowRef.focus();
   }
-  
-  // 显示窗口
-  mainWindowRef.show();
-  
-  // 聚焦窗口
-  mainWindowRef.focus();
-  
-  // 更新托盘菜单
-  updateTrayMenu();
 }
 
 /**
  * 隐藏主窗口
  */
 function hideMainWindow() {
-  if (!mainWindowRef) return;
-  
-  mainWindowRef.hide();
-  
-  // 更新托盘菜单
-  updateTrayMenu();
+  if (mainWindowRef) {
+    mainWindowRef.hide();
+  }
 }
 
 /**
  * 切换主窗口显示/隐藏
  */
 function toggleMainWindow() {
-  if (!mainWindowRef) return;
-  
-  if (mainWindowRef.isVisible() && !mainWindowRef.isMinimized()) {
-    hideMainWindow();
-  } else {
-    showMainWindow();
+  if (mainWindowRef) {
+    if (mainWindowRef.isVisible()) {
+      hideMainWindow();
+    } else {
+      showMainWindow();
+    }
   }
+}
+
+/**
+ * 退出应用
+ */
+function quitApp() {
+  app.quit();
 }
 
 // ============================================
@@ -295,79 +366,198 @@ function toggleMainWindow() {
 // ============================================
 
 /**
- * 显示托盘通知（Windows特有）
- * @param {string} title - 标题
- * @param {string} message - 消息内容
- * @param {string} [iconPath] - 图标路径
+ * 显示托盘通知
+ * @param {Object} options - 通知选项
  */
-function showTrayMessage(title, message, iconPath) {
-  if (!tray) return;
-  
-  // Windows: 使用托盘的displayBalloon方法
-  if (process.platform === 'win32') {
-    tray.displayBalloon({
-      title: title,
-      content: message,
-      iconType: 'info',
-      // 如果提供了图标路径
-      icon: iconPath ? nativeImage.createFromPath(iconPath) : undefined,
-    });
-  } else {
-    // macOS/Linux: 使用系统通知
-    showSystemNotification(title, message);
-  }
-}
+function showTrayNotification(options) {
+  const {
+    title = '云书',
+    body = '',
+    icon = null,
+    sound = false,
+    timeout = trayConfig.balloonTimeout,
+  } = options;
 
-/**
- * 显示系统通知
- * @param {string} title - 标题
- * @param {string} body - 内容
- */
-function showSystemNotification(title, body) {
+  // Windows: 使用托盘气球通知
+  if (process.platform === 'win32' && tray) {
+    tray.displayBalloon({
+      iconType: icon ? 'custom' : 'none',
+      icon: icon ? nativeImage.createFromPath(icon) : undefined,
+      title,
+      content: body,
+      respectQuietTime: true,
+    });
+  }
+
+  // macOS/Linux: 使用系统通知
   if (Notification.isSupported()) {
     const notification = new Notification({
-      title: title,
-      body: body,
-      icon: getTrayIcon('normal'),
+      title,
+      body,
+      icon: icon || getIconPath('normal'),
+      silent: !sound,
     });
-    
+
     notification.on('click', () => {
       showMainWindow();
     });
-    
+
     notification.show();
   }
 }
 
 /**
  * 显示写作提醒通知
- * @param {string} message - 提醒消息
+ * @param {Object} options - 选项
  */
-function showWritingReminder(message) {
-  showTrayMessage('云书 - 写作提醒', message);
-  updateTrayIconState('writing');
-  
-  // 5秒后恢复正常状态
+function showWritingReminder(options = {}) {
+  const {
+    message = '该写作了！保持创作节奏',
+    duration = 15,
+  } = options;
+
+  showTrayNotification({
+    title: '写作提醒',
+    body: message,
+    sound: true,
+  });
+
+  // 更新托盘状态
+  updateTrayState('notification');
+
+  // 3秒后恢复状态
   setTimeout(() => {
-    updateTrayIconState('normal');
-  }, 5000);
+    updateTrayState('normal');
+  }, 3000);
 }
 
 /**
  * 显示目标达成通知
- * @param {string} goalType - 目标类型
- * @param {string} message - 消息内容
+ * @param {Object} options - 选项
  */
-function showGoalAchieved(goalType, message) {
-  showTrayMessage(`云书 - ${goalType}目标达成！`, message);
-  updateTrayIconState('unread');
-  
-  // 点击窗口后恢复正常状态
-  if (mainWindowRef) {
-    mainWindowRef.once('focus', () => {
-      updateTrayIconState('normal');
+function showGoalAchievedNotification(options = {}) {
+  const {
+    goal = 2000,
+    actual = 2000,
+  } = options;
+
+  showTrayNotification({
+    title: '目标达成！',
+    body: `恭喜！您已完成今日写作目标 ${actual} 字！`,
+    sound: true,
+  });
+
+  // 更新托盘状态
+  updateTrayState('notification');
+}
+
+/**
+ * 显示番茄钟通知
+ * @param {Object} options - 选项
+ */
+function showPomodoroNotification(options = {}) {
+  const {
+    type = 'complete', // complete, break
+    duration = 25,
+  } = options;
+
+  if (type === 'complete') {
+    showTrayNotification({
+      title: '番茄钟完成',
+      body: `您已完成 ${duration} 分钟的专注写作！休息一下吧。`,
+      sound: true,
+    });
+  } else if (type === 'break') {
+    showTrayNotification({
+      title: '休息结束',
+      body: '休息时间结束，准备好开始新的番茄钟了吗？',
+      sound: true,
     });
   }
+}
+
+/**
+ * 显示保存成功通知
+ */
+function showSaveSuccessNotification() {
+  showTrayNotification({
+    title: '保存成功',
+    body: '您的作品已保存',
+    sound: false,
+  });
+}
+
+/**
+ * 显示自动保存通知
+ */
+function showAutoSaveNotification() {
+  showTrayNotification({
+    title: '自动保存',
+    body: '您的作品已自动保存',
+    sound: false,
+  });
+}
+
+// ============================================
+// 托盘状态管理
+// ============================================
+
+/**
+ * 更新托盘状态
+ * @param {string} state - 状态类型 (normal, writing, notification)
+ */
+function updateTrayState(state) {
+  if (!tray || currentTrayState === state) {
+    return;
+  }
+
+  currentTrayState = state;
+
+  // 加载对应状态的图标
+  const icon = loadTrayIcon(state);
+  if (icon) {
+    tray.setImage(icon);
+  }
+
+  // 更新提示文本
+  const tooltips = {
+    normal: trayConfig.tooltip,
+    writing: `${trayConfig.tooltip} - 写作中`,
+    notification: `${trayConfig.tooltip} - 有新消息`,
+  };
+  tray.setToolTip(tooltips[state] || trayConfig.tooltip);
+}
+
+/**
+ * 设置托盘图标
+ * @param {string|nativeImage} icon - 图标路径或对象
+ */
+function setTrayIcon(icon) {
+  if (tray) {
+    if (typeof icon === 'string') {
+      tray.setImage(nativeImage.createFromPath(icon));
+    } else {
+      tray.setImage(icon);
+    }
+  }
+}
+
+/**
+ * 设置托盘提示文本
+ * @param {string} tooltip - 提示文本
+ */
+function setTrayTooltip(tooltip) {
+  if (tray) {
+    tray.setToolTip(tooltip);
+  }
+}
+
+/**
+ * 获取当前托盘状态
+ * @returns {string} 当前状态
+ */
+function getTrayState() {
+  return currentTrayState;
 }
 
 // ============================================
@@ -380,113 +570,121 @@ function showGoalAchieved(goalType, message) {
  * @returns {Tray} 托盘实例
  */
 function createTray(mainWindow) {
-  if (tray) {
-    console.warn('[Tray] 托盘已存在');
-    return tray;
-  }
-  
   mainWindowRef = mainWindow;
-  
-  // 创建托盘图标
-  const icon = getTrayIcon('normal');
-  tray = new Tray(icon);
-  
-  // 设置托盘提示文本
-  tray.setToolTip('云书 - AI智能小说创作平台');
-  
-  // 设置右键菜单
-  tray.setContextMenu(createTrayMenu());
-  
-  // 点击事件（不同平台行为不同）
-  if (process.platform === 'darwin') {
-    // macOS: 点击显示菜单（默认行为）
-    tray.on('mouse-down', () => {
-      toggleMainWindow();
-    });
-  } else {
-    // Windows/Linux: 点击显示/隐藏窗口
-    tray.on('click', () => {
-      toggleMainWindow();
-    });
-    
-    // 双击显示窗口
-    tray.on('double-click', () => {
-      showMainWindow();
-    });
+
+  // 如果托盘已存在，先销毁
+  if (tray) {
+    destroyTray();
   }
-  
-  // 右键点击显示菜单（Windows/Linux默认行为）
-  tray.on('right-click', () => {
-    updateTrayMenu();
+
+  // 加载图标
+  const icon = loadTrayIcon('normal');
+  if (!icon) {
+    console.error('[Tray] 无法创建托盘：图标加载失败');
+    return null;
+  }
+
+  // 创建托盘
+  tray = new Tray(icon);
+
+  // 设置提示文本
+  tray.setToolTip(trayConfig.tooltip);
+
+  // 设置上下文菜单
+  const menu = createTrayMenu();
+  tray.setContextMenu(menu);
+
+  // 点击托盘图标
+  tray.on('click', (event, bounds) => {
+    // macOS: Command+点击显示菜单
+    if (process.platform === 'darwin' && event.metaKey) {
+      tray.popUpContextMenu();
+      return;
+    }
+
+    // 切换窗口显示
+    toggleMainWindow();
   });
-  
+
+  // 双击托盘图标
+  tray.on('double-click', () => {
+    showMainWindow();
+  });
+
+  // 右键点击（Windows/Linux）
+  tray.on('right-click', () => {
+    tray.popUpContextMenu();
+  });
+
+  // 气球通知点击（Windows）
+  tray.on('balloon-click', () => {
+    showMainWindow();
+  });
+
+  // 气球通知关闭
+  tray.on('balloon-closed', () => {
+    console.log('[Tray] 气球通知已关闭');
+  });
+
   console.log('[Tray] 系统托盘已创建');
-  
+
   return tray;
 }
 
 /**
- * 销毁系统托盘
+ * 销毁托盘
  */
 function destroyTray() {
   if (tray) {
     tray.destroy();
     tray = null;
-    mainWindowRef = null;
     console.log('[Tray] 系统托盘已销毁');
   }
 }
 
 /**
  * 获取托盘实例
- * @returns {Tray|null}
+ * @returns {Tray|null} 托盘实例
  */
 function getTray() {
   return tray;
 }
 
+// ============================================
+// 写作状态管理
+// ============================================
+
 /**
- * 更新托盘图标（供外部调用）
- * @param {string} message - 可选的消息（用于首次托盘提示）
+ * 开始写作
+ * 更新托盘状态为写作中
  */
-function updateTrayIcon(message) {
-  if (!tray) return;
-  
-  if (message) {
-    showTrayMessage('云书', message);
-  }
+function startWriting() {
+  updateTrayState('writing');
 }
 
-// ============================================
-// IPC事件处理
-// ============================================
+/**
+ * 停止写作
+ * 恢复托盘状态为正常
+ */
+function stopWriting() {
+  updateTrayState('normal');
+}
 
 /**
- * 处理托盘相关的IPC事件
- * @param {IpcMain} ipcMain - IPC主进程对象
+ * 设置写作进度
+ * @param {Object} progress - 进度信息
  */
-function setupTrayIpc(ipcMain) {
-  // 设置托盘图标状态
-  ipcMain.on('set-tray-icon', (event, iconType) => {
-    updateTrayIconState(iconType);
-  });
-  
-  // 显示托盘消息
-  ipcMain.on('show-tray-message', (event, title, message) => {
-    showTrayMessage(title, message);
-  });
-  
-  // 显示写作提醒
-  ipcMain.handle('show-writing-reminder', (event, message) => {
-    showWritingReminder(message);
-    return true;
-  });
-  
-  // 显示目标达成通知
-  ipcMain.handle('show-goal-achieved', (event, goalType, message) => {
-    showGoalAchieved(goalType, message);
-    return true;
-  });
+function setWritingProgress(progress) {
+  const { current, goal, percentage } = progress;
+
+  // 更新托盘提示
+  const tooltip = `云书\n今日进度: ${current}/${goal} 字 (${percentage}%)`;
+  setTrayTooltip(tooltip);
+
+  // 如果达到目标，显示通知
+  if (current >= goal && percentage >= 100) {
+    showGoalAchievedNotification({ goal, actual: current });
+  }
 }
 
 // ============================================
@@ -498,27 +696,37 @@ module.exports = {
   createTray,
   destroyTray,
   getTray,
-  
-  // 图标管理
-  updateTrayIcon,
-  updateTrayIconState,
-  getTrayIcon,
-  
-  // 菜单管理
-  createTrayMenu,
-  updateTrayMenu,
-  
+
   // 窗口控制
   showMainWindow,
   hideMainWindow,
   toggleMainWindow,
-  
+
+  // 托盘状态
+  updateTrayState,
+  setTrayIcon,
+  setTrayTooltip,
+  getTrayState,
+
+  // 写作状态
+  startWriting,
+  stopWriting,
+  setWritingProgress,
+
   // 通知
-  showTrayMessage,
-  showSystemNotification,
+  showTrayNotification,
   showWritingReminder,
-  showGoalAchieved,
-  
-  // IPC设置
-  setupTrayIpc,
+  showGoalAchievedNotification,
+  showPomodoroNotification,
+  showSaveSuccessNotification,
+  showAutoSaveNotification,
+
+  // 菜单
+  updateTrayMenu,
+  createTrayMenu,
+
+  // 工具函数
+  sendTrayAction,
+  loadTrayIcon,
+  getIconPath,
 };
