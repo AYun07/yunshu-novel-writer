@@ -23,6 +23,20 @@
 // ============================================
 
 /**
+ * 安全的动态导入
+ * 使用 @vite-ignore 避免 Rollup/Vite 在构建时尝试解析模块
+ * @param {string} mod - 模块路径
+ * @returns {Promise<any>}
+ */
+async function safeImport(mod) {
+  try {
+    return await import(/* @vite-ignore */ mod);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
  * 检测是否在 Termux 环境中运行
  */
 function detectTermux() {
@@ -68,7 +82,7 @@ async function checkStoragePermission() {
   
   try {
     // 尝试访问外部存储目录
-    const { Filesystem, Directory } = await import('@capacitor/filesystem');
+    const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
     await Filesystem.readdir({
       path: '',
       directory: Directory.External,
@@ -137,7 +151,7 @@ export const termuxAPI = {
       if (!isTermux) return null;
       
       try {
-        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
         const result = await Filesystem.getUri({
           directory: Directory.External,
           path: '',
@@ -178,7 +192,7 @@ export const termuxAPI = {
       }
       
       try {
-        const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
+        const { Filesystem, Directory, Encoding } = await safeImport('@capacitor/filesystem');
         const result = await Filesystem.readFile({
           path,
           directory: Directory.External,
@@ -203,7 +217,7 @@ export const termuxAPI = {
       }
       
       try {
-        const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
+        const { Filesystem, Directory, Encoding } = await safeImport('@capacitor/filesystem');
         await Filesystem.writeFile({
           path,
           data: content,
@@ -229,7 +243,7 @@ export const termuxAPI = {
       }
       
       try {
-        const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
+        const { Filesystem, Directory, Encoding } = await safeImport('@capacitor/filesystem');
         await Filesystem.appendFile({
           path,
           data: content,
@@ -254,7 +268,7 @@ export const termuxAPI = {
       }
       
       try {
-        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
         await Filesystem.deleteFile({
           path,
           directory: Directory.External,
@@ -275,7 +289,7 @@ export const termuxAPI = {
       if (!isTermux) return false;
       
       try {
-        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
         await Filesystem.stat({
           path,
           directory: Directory.External,
@@ -297,7 +311,7 @@ export const termuxAPI = {
       }
       
       try {
-        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
         await Filesystem.mkdir({
           path,
           directory: Directory.External,
@@ -321,7 +335,7 @@ export const termuxAPI = {
       }
       
       try {
-        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
         const result = await Filesystem.readdir({
           path,
           directory: Directory.External,

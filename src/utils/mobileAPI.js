@@ -23,31 +23,47 @@
  * }
  */
 
-import { Capacitor } from '@capacitor/core';
+// ============================================
+// 环境检测（兼容无 Capacitor 的 Web 构建）
+// ============================================
 
-// ============================================
-// 环境检测
-// ============================================
+/**
+ * 安全获取 Capacitor 实例
+ * 在 Web 构建中 @capacitor/core 可能不存在
+ */
+function getCapacitor() {
+  try {
+    // 使用全局变量，避免静态 import 导致构建失败
+    if (typeof window !== 'undefined' && window.Capacitor) {
+      return window.Capacitor;
+    }
+  } catch (e) {
+    // Capacitor 不可用
+  }
+  return null;
+}
+
+const _cap = getCapacitor();
 
 /**
  * 检测是否在原生应用环境
  */
-const isNative = Capacitor.isNativePlatform();
+const isNative = _cap ? _cap.isNativePlatform() : false;
 
 /**
  * 获取当前平台
  */
-const platform = Capacitor.getPlatform();
+const platform = _cap ? _cap.getPlatform() : (typeof navigator !== 'undefined' && navigator.platform ? navigator.platform.toLowerCase() : 'web');
 
 /**
  * 检测是否为 iOS
  */
-const isIOS = platform === 'ios';
+const isIOS = _cap ? (platform === 'ios') : (typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent));
 
 /**
  * 检测是否为 Android
  */
-const isAndroid = platform === 'android';
+const isAndroid = _cap ? (platform === 'android') : (typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent));
 
 /**
  * 检测是否为 Termux 环境
@@ -68,6 +84,25 @@ function detectTermux() {
 }
 
 const isTermux = detectTermux();
+
+// ============================================
+// 动态导入辅助函数
+// ============================================
+
+/**
+ * 安全的动态导入
+ * 使用字符串拼接避免 Rollup/Vite 在构建时尝试解析模块
+ * @param {string} mod - 模块路径
+ * @returns {Promise<any>}
+ */
+async function safeImport(mod) {
+  try {
+    return await import(/* @vite-ignore */ mod);
+  } catch (e) {
+    console.warn(`模块 ${mod} 不可用:`, e.message);
+    return null;
+  }
+}
 
 // ============================================
 // 设备信息 API
@@ -94,7 +129,7 @@ export const device = {
     }
     
     try {
-      const { Device } = await import('@capacitor/device');
+      const { Device } = await safeImport('@capacitor/device');
       return await Device.getInfo();
     } catch (error) {
       console.warn('Device API 不可用:', error);
@@ -112,7 +147,7 @@ export const device = {
     }
     
     try {
-      const { Device } = await import('@capacitor/device');
+      const { Device } = await safeImport('@capacitor/device');
       const info = await Device.getLanguageCode();
       return info.value;
     } catch (error) {
@@ -136,7 +171,7 @@ export const device = {
     }
     
     try {
-      const { Device } = await import('@capacitor/device');
+      const { Device } = await safeImport('@capacitor/device');
       const info = await Device.getId();
       return info.identifier;
     } catch (error) {
@@ -162,7 +197,7 @@ export const device = {
     }
     
     try {
-      const { Device } = await import('@capacitor/device');
+      const { Device } = await safeImport('@capacitor/device');
       return await Device.getBatteryInfo();
     } catch (error) {
       return null;
@@ -186,7 +221,7 @@ export const files = {
     }
     
     try {
-      const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
+      const { Filesystem, Directory, Encoding } = await safeImport('@capacitor/filesystem');
       const result = await Filesystem.readFile({
         path,
         directory: Directory.Documents,
@@ -211,7 +246,7 @@ export const files = {
     }
     
     try {
-      const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
+      const { Filesystem, Directory, Encoding } = await safeImport('@capacitor/filesystem');
       const result = await Filesystem.writeFile({
         path,
         data,
@@ -235,7 +270,7 @@ export const files = {
     }
     
     try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
       await Filesystem.deleteFile({
         path,
         directory: Directory.Documents,
@@ -257,7 +292,7 @@ export const files = {
     }
     
     try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
       await Filesystem.stat({
         path,
         directory: Directory.Documents,
@@ -278,7 +313,7 @@ export const files = {
     }
     
     try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
       await Filesystem.mkdir({
         path,
         directory: Directory.Documents,
@@ -301,7 +336,7 @@ export const files = {
     }
     
     try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
       const result = await Filesystem.readdir({
         path,
         directory: Directory.Documents,
@@ -323,7 +358,7 @@ export const files = {
     }
     
     try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Filesystem, Directory } = await safeImport('@capacitor/filesystem');
       const result = await Filesystem.getUri({
         directory: Directory.Documents,
         path: '',
@@ -368,7 +403,7 @@ export const share = {
     
     // 原生环境使用 Capacitor Share
     try {
-      const { Share } = await import('@capacitor/share');
+      const { Share } = await safeImport('@capacitor/share');
       await Share.share({
         title: options.title,
         text: options.text,
@@ -430,7 +465,7 @@ export const pushNotifications = {
     }
     
     try {
-      const { PushNotifications } = await import('@capacitor/push-notifications');
+      const { PushNotifications } = await safeImport('@capacitor/push-notifications');
       const result = await PushNotifications.requestPermissions();
       return result.receive === 'granted';
     } catch (error) {
@@ -446,7 +481,7 @@ export const pushNotifications = {
     if (!isNative) return;
     
     try {
-      const { PushNotifications } = await import('@capacitor/push-notifications');
+      const { PushNotifications } = await safeImport('@capacitor/push-notifications');
       
       await PushNotifications.register();
       
@@ -484,7 +519,7 @@ export const pushNotifications = {
     if (!isNative) return [];
     
     try {
-      const { PushNotifications } = await import('@capacitor/push-notifications');
+      const { PushNotifications } = await safeImport('@capacitor/push-notifications');
       const result = await PushNotifications.getDeliveredNotifications();
       return result.notifications;
     } catch (error) {
@@ -500,7 +535,7 @@ export const pushNotifications = {
     if (!isNative) return;
     
     try {
-      const { PushNotifications } = await import('@capacitor/push-notifications');
+      const { PushNotifications } = await safeImport('@capacitor/push-notifications');
       await PushNotifications.removeDeliveredNotifications({
         notifications,
       });
@@ -529,7 +564,7 @@ export const localNotifications = {
     }
     
     try {
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const { LocalNotifications } = await safeImport('@capacitor/local-notifications');
       const result = await LocalNotifications.requestPermissions();
       return result.display === 'granted';
     } catch (error) {
@@ -558,7 +593,7 @@ export const localNotifications = {
     }
     
     try {
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const { LocalNotifications } = await safeImport('@capacitor/local-notifications');
       await LocalNotifications.schedule({
         notifications: [{
           id: options.id || Date.now(),
@@ -605,7 +640,7 @@ export const localNotifications = {
     if (!isNative) return;
     
     try {
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const { LocalNotifications } = await safeImport('@capacitor/local-notifications');
       await LocalNotifications.cancel({
         notifications: [{ id }],
       });
@@ -632,7 +667,7 @@ export const camera = {
     }
     
     try {
-      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+      const { Camera, CameraResultType, CameraSource } = await safeImport('@capacitor/camera');
       const photo = await Camera.getPhoto({
         quality: options.quality || 90,
         allowEditing: options.allowEditing || false,
@@ -661,7 +696,7 @@ export const camera = {
     }
     
     try {
-      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+      const { Camera, CameraResultType, CameraSource } = await safeImport('@capacitor/camera');
       const photo = await Camera.getPhoto({
         quality: options.quality || 90,
         allowEditing: options.allowEditing || false,
@@ -734,7 +769,7 @@ export const network = {
     }
     
     try {
-      const { Network } = await import('@capacitor/network');
+      const { Network } = await safeImport('@capacitor/network');
       const status = await Network.getStatus();
       return status;
     } catch (error) {
@@ -757,7 +792,7 @@ export const network = {
     }
     
     try {
-      const { Network } = await import('@capacitor/network');
+      const { Network } = await safeImport('@capacitor/network');
       Network.addListener('networkStatusChange', callback);
     } catch (error) {
       console.warn('网络状态监听不可用:', error);
@@ -777,7 +812,7 @@ export const keyboard = {
     if (!isNative) return;
     
     try {
-      const { Keyboard } = await import('@capacitor/keyboard');
+      const { Keyboard } = await safeImport('@capacitor/keyboard');
       await Keyboard.show();
     } catch (error) {
       console.warn('键盘显示不可用:', error);
@@ -791,7 +826,7 @@ export const keyboard = {
     if (!isNative) return;
     
     try {
-      const { Keyboard } = await import('@capacitor/keyboard');
+      const { Keyboard } = await safeImport('@capacitor/keyboard');
       await Keyboard.hide();
     } catch (error) {
       console.warn('键盘隐藏不可用:', error);
@@ -806,7 +841,7 @@ export const keyboard = {
     if (!isNative) return;
     
     try {
-      const { Keyboard } = await import('@capacitor/keyboard');
+      const { Keyboard } = await safeImport('@capacitor/keyboard');
       Keyboard.addListener('keyboardWillShow', (info) => {
         callback(info.keyboardHeight);
       });
@@ -823,7 +858,7 @@ export const keyboard = {
     if (!isNative) return;
     
     try {
-      const { Keyboard } = await import('@capacitor/keyboard');
+      const { Keyboard } = await safeImport('@capacitor/keyboard');
       Keyboard.addListener('keyboardWillHide', callback);
     } catch (error) {
       console.warn('键盘监听不可用:', error);
@@ -852,7 +887,7 @@ export const safeArea = {
     }
     
     try {
-      const { SafeArea } = await import('capacitor-plugin-safe-area');
+      const { SafeArea } = await safeImport('capacitor-plugin-safe-area');
       const result = await SafeArea.getSafeArea();
       return result.insets;
     } catch (error) {
@@ -888,7 +923,7 @@ export const appInfo = {
     }
     
     try {
-      const { App } = await import('@capacitor/app');
+      const { App } = await safeImport('@capacitor/app');
       const info = await App.getInfo();
       return info;
     } catch (error) {
@@ -918,7 +953,7 @@ export const appInfo = {
     if (!isNative) return;
     
     try {
-      const { App } = await import('@capacitor/app');
+      const { App } = await safeImport('@capacitor/app');
       App.addListener('appStateChange', callback);
     } catch (error) {
       console.warn('应用状态监听不可用:', error);
@@ -933,7 +968,7 @@ export const appInfo = {
     if (!isNative || !isAndroid) return;
     
     try {
-      const { App } = await import('@capacitor/app');
+      const { App } = await safeImport('@capacitor/app');
       App.addListener('backButton', callback);
     } catch (error) {
       console.warn('返回按钮监听不可用:', error);
@@ -947,7 +982,7 @@ export const appInfo = {
     if (!isNative) return;
     
     try {
-      const { App } = await import('@capacitor/app');
+      const { App } = await safeImport('@capacitor/app');
       await App.exitApp();
     } catch (error) {
       console.warn('退出应用不可用:', error);
@@ -973,7 +1008,7 @@ export const biometric = {
     }
     
     try {
-      const { BiometricAuth } = await import('@capawesome/capacitor-biometric-auth');
+      const { BiometricAuth } = await safeImport('@capawesome/capacitor-biometric-auth');
       const result = await BiometricAuth.isAvailable();
       return result;
     } catch (error) {
@@ -993,7 +1028,7 @@ export const biometric = {
     if (!isNative) return false;
     
     try {
-      const { BiometricAuth } = await import('@capawesome/capacitor-biometric-auth');
+      const { BiometricAuth } = await safeImport('@capawesome/capacitor-biometric-auth');
       const result = await BiometricAuth.verify(options);
       return result.verified;
     } catch (error) {
