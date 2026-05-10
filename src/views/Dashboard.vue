@@ -52,6 +52,14 @@
           <el-icon><Lightbulb /></el-icon>
           <template #title>灵感工坊</template>
         </el-menu-item>
+        <el-menu-item index="/cards">
+          <el-icon><Postcard /></el-icon>
+          <template #title>索引卡片</template>
+        </el-menu-item>
+        <el-menu-item index="/multi-view">
+          <el-icon><Grid /></el-icon>
+          <template #title>四视图编辑</template>
+        </el-menu-item>
 
         <!-- 项目管理 -->
         <div class="menu-group-title" v-if="!isCollapse">项目管理</div>
@@ -71,6 +79,10 @@
           <el-icon><Share /></el-icon>
           <template #title>章节图谱</template>
         </el-menu-item>
+        <el-menu-item index="/mega-novel">
+          <el-icon><Notebook /></el-icon>
+          <template #title>百万字管理</template>
+        </el-menu-item>
 
         <!-- 叙事工程 -->
         <div class="menu-group-title" v-if="!isCollapse">叙事工程</div>
@@ -81,6 +93,10 @@
         <el-menu-item index="/narrative">
           <el-icon><SetUp /></el-icon>
           <template #title>叙事结构</template>
+        </el-menu-item>
+        <el-menu-item index="/literary">
+          <el-icon><Reading /></el-icon>
+          <template #title>文学工坊</template>
         </el-menu-item>
 
         <!-- 资源库 -->
@@ -111,6 +127,14 @@
         <el-menu-item index="/collaboration">
           <el-icon><User /></el-icon>
           <template #title>协作中心</template>
+        </el-menu-item>
+        <el-menu-item index="/collaboration-hub">
+          <el-icon><UserFilled /></el-icon>
+          <template #title>协作中心</template>
+        </el-menu-item>
+        <el-menu-item index="/review">
+          <el-icon><View /></el-icon>
+          <template #title>审阅模式</template>
         </el-menu-item>
 
         <!-- 扩展 -->
@@ -253,7 +277,7 @@ import {
   CreditCard, Setting, Key, Tools, EditPen, DataAnalysis,
   Expand, Fold, Brush, MagicStick, Search, Download, User,
   Monitor, Lightbulb, Trophy, Opportunity, Memo, Files, Edit,
-  Share, Connection, SetUp, Reading
+  Share, Connection, SetUp, Reading, Postcard, Grid, View, UserFilled
 } from '@element-plus/icons-vue'
 import ApiConfig from '@/components/ApiConfig.vue'
 import { ElMessage } from 'element-plus'
@@ -302,18 +326,24 @@ const pageTitle = computed(() => {
     '/focus': '专注模式',
     '/analysis': '质量分析',
     '/ideas': '灵感工坊',
+    '/cards': '索引卡片',
+    '/multi-view': '四视图编辑器',
     '/novels': '小说列表',
     '/chapters': '章节管理',
     '/writer': '写作编辑器',
     '/graph': '章节图谱',
+    '/mega-novel': '百万字管理',
     '/foreshadowing': '伏笔管理',
     '/narrative': '叙事结构',
+    '/literary': '文学工坊',
     '/prompts': '提示词库',
     '/genres': '小说类型',
     '/tools': '工具库',
     '/book-analysis': '拆书工具',
     '/export': '导出中心',
     '/collaboration': '协作中心',
+    '/collaboration-hub': '协作中心',
+    '/review': '审阅模式',
     '/plugins': '插件市场',
     '/gamification': '成就中心',
     '/goals': '写作目标',
@@ -333,18 +363,23 @@ const commands = [
   { name: '专注模式', path: '/focus', desc: '无干扰沉浸写作', icon: 'Monitor', shortcut: 'F11' },
   { name: '质量分析', path: '/analysis', desc: '文本质量检测与评分', icon: 'DataAnalysis' },
   { name: '灵感工坊', path: '/ideas', desc: '想法板、片段库、写作热身', icon: 'Lightbulb' },
+  { name: '索引卡片', path: '/cards', desc: '卡片式内容组织', icon: 'Postcard' },
+  { name: '四视图编辑器', path: '/multi-view', desc: '多视图同步编辑', icon: 'Grid' },
   { name: '小说列表', path: '/novels', desc: '管理所有小说项目', icon: 'Document' },
   { name: '章节管理', path: '/chapters', desc: '章节编辑与排序', icon: 'Files' },
   { name: '写作编辑器', path: '/writer', desc: '富文本写作编辑器', icon: 'Edit' },
   { name: '章节图谱', path: '/graph', desc: '章节关系图谱与时间线', icon: 'Share' },
+  { name: '百万字管理', path: '/mega-novel', desc: '超长篇小说专用管理', icon: 'Notebook' },
   { name: '伏笔管理', path: '/foreshadowing', desc: '剧情伏笔追踪与回收', icon: 'Connection' },
   { name: '叙事结构', path: '/narrative', desc: '叙事元素建模与角色深度', icon: 'SetUp' },
+  { name: '文学工坊', path: '/literary', desc: '严肃文学创作工具', icon: 'Reading' },
   { name: '提示词库', path: '/prompts', desc: '自定义提示词模板', icon: 'ChatLineSquare' },
   { name: '小说类型', path: '/genres', desc: '类型模板管理', icon: 'Collection' },
   { name: '工具库', path: '/tools', desc: '写作辅助工具集', icon: 'Tools' },
   { name: '拆书工具', path: '/book-analysis', desc: '分析拆解优秀作品', icon: 'Reading' },
   { name: '导出中心', path: '/export', desc: '多格式专业导出', icon: 'Download' },
-  { name: '协作中心', path: '/collaboration', desc: '分享、评论与版本对比', icon: 'User' },
+  { name: '协作中心', path: '/collaboration-hub', desc: '分享、评论与版本对比', icon: 'UserFilled' },
+  { name: '审阅模式', path: '/review', desc: '专业审阅与批注', icon: 'View' },
   { name: '插件市场', path: '/plugins', desc: '扩展功能插件', icon: 'Opportunity' },
   { name: '成就中心', path: '/gamification', desc: '成就、等级与写作统计', icon: 'Trophy' },
   { name: '写作目标', path: '/goals', desc: '设定与追踪写作目标', icon: 'Aim' },

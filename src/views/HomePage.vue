@@ -1,832 +1,925 @@
 <template>
-  <div class="home-page">
+  <!-- 
+    云书 - 首页组件
+    包含欢迎区域、功能展示、最近项目、写作统计、快捷入口和帮助提示
+  -->
+  <div class="home-page" role="main" id="main-content" aria-label="主要内容">
+    <!-- 跳过链接目标 -->
+    <a id="main-content" href="#main-content" class="sr-only">主要内容</a>
+    
     <!-- 欢迎区域 -->
-    <div class="welcome-section">
-      <el-card class="welcome-card" shadow="never">
-        <div class="welcome-content">
-          <div class="welcome-text">
-            <h1>欢迎回来！</h1>
-            <p>开始您的创作之旅，让AI助力您的小说创作</p>
-          </div>
-          <div class="welcome-actions">
-            <el-button type="primary" size="large" @click="createNovel">
-              <el-icon><Plus /></el-icon>
-              创建新小说
-            </el-button>
-          </div>
-        </div>
-      </el-card>
-    </div>
-
-    <!-- 统计概览 -->
-    <div class="stats-section">
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <el-card class="stat-card" shadow="hover">
-            <div class="stat-item">
-              <div class="stat-icon novels">
-                <el-icon><Document /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ stats.totalNovels }}</div>
-                <div class="stat-label">总小说数</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        
-        <el-col :span="6">
-          <el-card class="stat-card" shadow="hover">
-            <div class="stat-item">
-              <div class="stat-icon words">
-                <el-icon><EditPen /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ formatNumber(stats.totalWords) }}</div>
-                <div class="stat-label">总字数</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        
-        <el-col :span="6">
-          <el-card class="stat-card" shadow="hover">
-            <div class="stat-item">
-              <div class="stat-icon chapters">
-                <el-icon><Notebook /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ stats.totalChapters }}</div>
-                <div class="stat-label">总章节数</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        
-        <el-col :span="6">
-          <el-card class="stat-card" shadow="hover">
-            <div class="stat-item">
-              <div class="stat-icon tokens">
-                <el-icon><CreditCard /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ formatNumber(stats.totalTokens) }}</div>
-                <div class="stat-label">已用Token</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-    </div>
-
-    <!-- 主要内容区域 -->
-    <el-row :gutter="20" class="main-content">
-      <!-- 左侧：写作目标 -->
-      <el-col :span="12">
-        <el-card class="goals-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>📝 今日写作目标</span>
-              <el-button type="text" @click="showGoalsDialog = true">
-                管理目标
-              </el-button>
-            </div>
-          </template>
-          
-          <div class="goals-content">
-            <!-- 动态显示目标 -->
-            <div 
-              v-for="goal in displayedGoals" 
-              :key="goal.id"
-              class="goal-item"
-            >
-              <div class="goal-info">
-                <span class="goal-label">{{ goal.title }}</span>
-                <span class="goal-value">{{ goal.targetValue }}{{ goal.unit }}</span>
-              </div>
-              <div class="goal-progress">
-                <el-progress 
-                  :percentage="getGoalProgress(goal)" 
-                  :color="getProgressColor(getGoalProgress(goal))"
-                  :stroke-width="8"
-                  :show-text="false"
-                />
-                <span class="progress-text">{{ goal.currentValue }}{{ goal.unit }} / {{ goal.targetValue }}{{ goal.unit }}</span>
-              </div>
-            </div>
-            
-            <!-- 如果没有目标时显示默认内容 -->
-            <div v-if="displayedGoals.length === 0" class="no-goals">
-              <el-empty description="暂无活跃目标" size="small">
-                <el-button type="primary" size="small" @click="showGoalsDialog = true">
-                  创建目标
-                </el-button>
-              </el-empty>
-            </div>
-            
-            <!-- 查看全部目标按钮 -->
-            <div v-if="totalActiveGoals > maxDisplayGoals" class="view-all-goals">
-              <el-button type="text" size="small" @click="showGoalsDialog = true">
-                查看全部 {{ totalActiveGoals }} 个目标 →
-              </el-button>
-            </div>
-            
-            <div class="streak-info" v-if="displayedGoals.length > 0">
-              <el-icon class="streak-icon"><Trophy /></el-icon>
-              <span>连续写作 {{ calculateStreak() }} 天</span>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      
-      <!-- 右侧：快速操作 -->
-      <el-col :span="12">
-        <el-card class="quick-actions-card" shadow="hover">
-          <template #header>
-            <span>🚀 快速操作</span>
-          </template>
-          
-          <div class="quick-actions">
-            <div class="action-grid">
-              <div class="action-item" @click="openPrompts">
-                <div class="action-icon">
-                  <el-icon><ChatLineSquare /></el-icon>
-                </div>
-                <span>提示词库</span>
-              </div>
-              
-              <div class="action-item" @click="openChapters">
-                <div class="action-icon">
-                  <el-icon><Notebook /></el-icon>
-                </div>
-                <span>章节管理</span>
-              </div>
-              
-              <div class="action-item" @click="openBilling">
-                <div class="action-icon">
-                  <el-icon><CreditCard /></el-icon>
-                </div>
-                <span>Token计费</span>
-              </div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 最近小说 -->
-    <div class="recent-novels-section">
-      <el-card class="recent-novels-card" shadow="hover">
-        <template #header>
-          <div class="card-header">
-            <span>📚 最近编辑的小说</span>
-            <el-button type="text" @click="viewAllNovels">
-              查看全部
-            </el-button>
-          </div>
-        </template>
-        
-        <div class="novels-list">
-          <div 
-            v-for="novel in recentNovels" 
-            :key="novel.id"
-            class="novel-item"
-            @click="openNovel(novel)"
+    <section class="welcome-section" aria-labelledby="welcome-heading">
+      <div class="welcome-content">
+        <h1 id="welcome-heading" class="welcome-title">
+          {{ t('app.fullName') }}
+        </h1>
+        <p class="welcome-slogan">{{ t('app.slogan') }}</p>
+        <div class="welcome-actions">
+          <el-button 
+            type="primary" 
+            size="large" 
+            @click="goToNovels"
+            data-action="new"
+            aria-label="创建新小说"
           >
-            <div class="novel-cover">
-              <img v-if="novel.cover" :src="novel.cover" :alt="novel.title" />
-              <div v-else class="default-cover">
-                <el-icon><Document /></el-icon>
-              </div>
-            </div>
-            <div class="novel-info">
-              <h4 class="novel-title">{{ novel.title }}</h4>
-              <p class="novel-desc">{{ novel.description }}</p>
-              <div class="novel-meta">
-                <span class="word-count">{{ formatNumber(novel.wordCount) }} 字</span>
-                <span class="update-time">{{ formatTime(novel.updatedAt) }}</span>
-              </div>
-            </div>
-            <div class="novel-actions">
-              <el-button type="text" size="small">
-                继续写作
-              </el-button>
-            </div>
-          </div>
-          
-          <div v-if="recentNovels.length === 0" class="empty-novels">
-            <el-empty description="暂无小说，开始创作您的第一部作品吧！">
-              <el-button type="primary" @click="createNovel">创建小说</el-button>
-            </el-empty>
-          </div>
+            <el-icon><Plus /></el-icon>
+            {{ t('home.createNovel') }}
+          </el-button>
+          <el-button 
+            size="large" 
+            @click="goToWriter"
+            aria-label="快速开始写作"
+          >
+            <el-icon><Edit /></el-icon>
+            {{ t('home.quickStart') }}
+          </el-button>
         </div>
-      </el-card>
-    </div>
+      </div>
+      
+      <!-- 今日统计卡片 -->
+      <div class="today-stats" aria-label="今日写作统计">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <el-icon class="stat-icon" :size="32"><Document /></el-icon>
+            <div class="stat-info">
+              <span class="stat-value">{{ todayWords.toLocaleString() }}</span>
+              <span class="stat-label">{{ t('home.todayWords') }}</span>
+            </div>
+          </div>
+        </el-card>
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <el-icon class="stat-icon" :size="32"><TrendCharts /></el-icon>
+            <div class="stat-info">
+              <span class="stat-value">{{ streakDays }}</span>
+              <span class="stat-label">{{ t('home.streakDays') }}</span>
+            </div>
+          </div>
+        </el-card>
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <el-icon class="stat-icon" :size="32"><Notebook /></el-icon>
+            <div class="stat-info">
+              <span class="stat-value">{{ totalWords.toLocaleString() }}</span>
+              <span class="stat-label">{{ t('home.totalWords') }}</span>
+            </div>
+          </div>
+        </el-card>
+      </div>
+    </section>
 
-    <!-- 写作目标管理对话框 -->
-    <el-dialog v-model="showGoalsDialog" title="写作目标管理" width="800px">
-      <WritingGoals @close="showGoalsDialog = false" />
+    <!-- 功能展示区域 -->
+    <section class="features-section" aria-labelledby="features-heading">
+      <h2 id="features-heading" class="section-title">{{ t('home.features') }}</h2>
+      
+      <div class="features-grid">
+        <!-- AI创作 -->
+        <el-card class="feature-card" shadow="hover" @click="navigateTo('master')">
+          <template #header>
+            <div class="feature-header">
+              <el-icon class="feature-icon" :size="24"><MagicStick /></el-icon>
+              <span>{{ t('home.featureCategories.aiCreation.title') }}</span>
+            </div>
+          </template>
+          <p class="feature-description">{{ t('home.featureCategories.aiCreation.description') }}</p>
+          <div class="feature-links">
+            <el-link type="primary" @click.stop="navigateTo('master')">{{ t('nav.master') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('imitation')">{{ t('nav.imitation') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('literary')">{{ t('nav.literary') }}</el-link>
+          </div>
+        </el-card>
+
+        <!-- 写作工具 -->
+        <el-card class="feature-card" shadow="hover" @click="navigateTo('focus')">
+          <template #header>
+            <div class="feature-header">
+              <el-icon class="feature-icon" :size="24"><EditPen /></el-icon>
+              <span>{{ t('home.featureCategories.writingTools.title') }}</span>
+            </div>
+          </template>
+          <p class="feature-description">{{ t('home.featureCategories.writingTools.description') }}</p>
+          <div class="feature-links">
+            <el-link type="primary" @click.stop="navigateTo('focus')">{{ t('nav.focus') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('analysis')">{{ t('nav.analysis') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('ideas')">{{ t('nav.ideas') }}</el-link>
+          </div>
+        </el-card>
+
+        <!-- 项目管理 -->
+        <el-card class="feature-card" shadow="hover" @click="navigateTo('novels')">
+          <template #header>
+            <div class="feature-header">
+              <el-icon class="feature-icon" :size="24"><Folder /></el-icon>
+              <span>{{ t('home.featureCategories.projectManagement.title') }}</span>
+            </div>
+          </template>
+          <p class="feature-description">{{ t('home.featureCategories.projectManagement.description') }}</p>
+          <div class="feature-links">
+            <el-link type="primary" @click.stop="navigateTo('mega-novel')">{{ t('nav.megaNovel') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('graph')">{{ t('nav.graph') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('cards')">{{ t('nav.cards') }}</el-link>
+          </div>
+        </el-card>
+
+        <!-- 叙事工程 -->
+        <el-card class="feature-card" shadow="hover" @click="navigateTo('foreshadowing')">
+          <template #header>
+            <div class="feature-header">
+              <el-icon class="feature-icon" :size="24"><Connection /></el-icon>
+              <span>{{ t('home.featureCategories.narrativeEngineering.title') }}</span>
+            </div>
+          </template>
+          <p class="feature-description">{{ t('home.featureCategories.narrativeEngineering.description') }}</p>
+          <div class="feature-links">
+            <el-link type="primary" @click.stop="navigateTo('foreshadowing')">{{ t('nav.foreshadowing') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('narrative')">{{ t('nav.narrative') }}</el-link>
+          </div>
+        </el-card>
+
+        <!-- 导出协作 -->
+        <el-card class="feature-card" shadow="hover" @click="navigateTo('export')">
+          <template #header>
+            <div class="feature-header">
+              <el-icon class="feature-icon" :size="24"><Share /></el-icon>
+              <span>{{ t('home.featureCategories.exportCollaboration.title') }}</span>
+            </div>
+          </template>
+          <p class="feature-description">{{ t('home.featureCategories.exportCollaboration.description') }}</p>
+          <div class="feature-links">
+            <el-link type="primary" @click.stop="navigateTo('export')">{{ t('nav.export') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('collaboration-hub')">{{ t('nav.collaborationHub') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('review')">{{ t('nav.review') }}</el-link>
+          </div>
+        </el-card>
+
+        <!-- 扩展功能 -->
+        <el-card class="feature-card" shadow="hover" @click="navigateTo('plugins')">
+          <template #header>
+            <div class="feature-header">
+              <el-icon class="feature-icon" :size="24"><Grid /></el-icon>
+              <span>{{ t('home.featureCategories.extensions.title') }}</span>
+            </div>
+          </template>
+          <p class="feature-description">{{ t('home.featureCategories.extensions.description') }}</p>
+          <div class="feature-links">
+            <el-link type="primary" @click.stop="navigateTo('plugins')">{{ t('nav.plugins') }}</el-link>
+            <el-link type="primary" @click.stop="navigateTo('gamification')">{{ t('nav.gamification') }}</el-link>
+          </div>
+        </el-card>
+      </div>
+    </section>
+
+    <!-- 最近项目区域 -->
+    <section class="recent-section" aria-labelledby="recent-heading">
+      <div class="section-header">
+        <h2 id="recent-heading" class="section-title">{{ t('home.recentProjects') }}</h2>
+        <el-button text type="primary" @click="navigateTo('novels')">
+          {{ t('common.viewAll') }}
+          <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+
+      <div v-if="recentProjects.length > 0" class="projects-grid">
+        <el-card 
+          v-for="project in recentProjects" 
+          :key="project.id" 
+          class="project-card" 
+          shadow="hover"
+          @click="openProject(project)"
+          tabindex="0"
+          role="button"
+          :aria-label="`打开项目: ${project.title}`"
+        >
+          <div class="project-content">
+            <h3 class="project-title">{{ project.title }}</h3>
+            <p class="project-meta">
+              <span>{{ project.chapterCount }} {{ t('novel.fields.chapterCount') }}</span>
+              <span> · </span>
+              <span>{{ project.wordCount.toLocaleString() }} {{ t('home.wordsUnit') }}</span>
+            </p>
+            <p class="project-time">
+              {{ t('home.lastEdited') }}: {{ formatRelativeTime(project.updatedAt) }}
+            </p>
+          </div>
+          <div class="project-actions">
+            <el-button 
+              type="primary" 
+              size="small" 
+              @click.stop="continueWriting(project)"
+              :aria-label="`继续写作: ${project.title}`"
+            >
+              {{ t('home.continueWriting') }}
+            </el-button>
+          </div>
+        </el-card>
+      </div>
+
+      <el-empty 
+        v-else 
+        :description="t('home.noProjects')"
+        :image-size="120"
+      >
+        <el-button type="primary" @click="navigateTo('novels')">
+          {{ t('home.createFirst') }}
+        </el-button>
+      </el-empty>
+    </section>
+
+    <!-- 快捷入口区域 -->
+    <section class="quick-access-section" aria-labelledby="quick-access-heading">
+      <h2 id="quick-access-heading" class="section-title">{{ t('home.quickAccess') }}</h2>
+      
+      <div class="quick-buttons">
+        <el-button 
+          v-for="item in quickAccessItems" 
+          :key="item.route"
+          class="quick-button"
+          @click="navigateTo(item.route)"
+          :aria-label="item.label"
+        >
+          <el-icon :size="20">
+            <component :is="item.icon" />
+          </el-icon>
+          <span>{{ item.label }}</span>
+        </el-button>
+      </div>
+    </section>
+
+    <!-- 帮助提示区域 -->
+    <section class="help-section" aria-labelledby="help-heading">
+      <h2 id="help-heading" class="section-title">{{ t('home.helpTips') }}</h2>
+      
+      <div class="help-cards">
+        <el-card class="help-card" shadow="hover" @click="showBeginnerGuide">
+          <div class="help-content">
+            <el-icon class="help-icon" :size="32"><Guide /></el-icon>
+            <div class="help-info">
+              <h3>{{ t('home.beginnerGuide') }}</h3>
+              <p>{{ t('help.beginner.welcome') }}</p>
+            </div>
+          </div>
+        </el-card>
+
+        <el-card class="help-card" shadow="hover" @click="showShortcuts">
+          <div class="help-content">
+            <el-icon class="help-icon" :size="32"><Key /></el-icon>
+            <div class="help-info">
+              <h3>{{ t('home.keyboardShortcuts') }}</h3>
+              <p>{{ t('help.shortcuts.global.save') }}</p>
+            </div>
+          </div>
+        </el-card>
+      </div>
+    </section>
+
+    <!-- 快捷键帮助对话框 -->
+    <el-dialog 
+      v-model="shortcutsDialogVisible" 
+      :title="t('help.shortcuts.title')"
+      width="600px"
+      aria-labelledby="shortcuts-dialog-title"
+    >
+      <div class="shortcuts-content">
+        <div v-for="category in shortcutsCategories" :key="category.title" class="shortcuts-category">
+          <h4>{{ category.title }}</h4>
+          <ul class="shortcuts-list">
+            <li v-for="shortcut in category.items" :key="shortcut">
+              {{ shortcut }}
+            </li>
+          </ul>
+        </div>
+      </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
+/**
+ * 云书 - 首页组件
+ * 使用 Vue 3 Composition API
+ */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useNovelStore } from '@/stores/novel'
+import { useI18n } from '@/utils/i18n.js'
+import { ElMessage } from 'element-plus'
+
+// Element Plus 图标
 import { 
-  Plus, Edit, Document, EditPen, Notebook, CreditCard, 
-  ChatLineSquare, Trophy 
+  Plus, 
+  Edit, 
+  Document, 
+  TrendCharts, 
+  Notebook,
+  MagicStick,
+  EditPen,
+  Folder,
+  Connection,
+  Share,
+  Grid,
+  ArrowRight,
+  Guide,
+  Key
 } from '@element-plus/icons-vue'
-import WritingGoals from '@/components/WritingGoals.vue'
-import billingService from '@/services/billing.js'
+
+// ============================================
+// 组合式 API 设置
+// ============================================
 
 const router = useRouter()
-const novelStore = useNovelStore()
+const { t, formatRelativeTime: formatRelative } = useI18n()
 
+// ============================================
 // 响应式数据
-const showGoalsDialog = ref(false)
-const stats = computed(() => {
-  // 从本地存储获取真实的小说数据
-  const novelsData = JSON.parse(localStorage.getItem('novels') || '[]')
-  
-  // 使用计费服务获取真实的token使用统计
-  const usageStats = billingService.getUsageStats()
-  
-  // 计算真实统计数据
-  const totalNovels = novelsData.length
-  const totalWords = novelsData.reduce((sum, novel) => sum + (novel.wordCount || 0), 0)
-  const totalChapters = novelsData.reduce((sum, novel) => sum + ((novel.chapterList || []).length), 0)
-  const totalTokens = usageStats.totalInputTokens + usageStats.totalOutputTokens
-  
-  return {
-    totalNovels,
-    totalWords,
-    totalChapters,
-    totalTokens
-  }
-})
+// ============================================
 
-// 添加响应式的目标数据状态
-const goalsRefreshTrigger = ref(0)
-const maxDisplayGoals = ref(3) // 首页最多显示的目标数量
+// 今日统计
+const todayWords = ref(0)
+const streakDays = ref(0)
+const totalWords = ref(0)
 
-// 获取所有活跃目标
-const activeGoals = computed(() => {
-  // 触发重新计算（通过依赖goalsRefreshTrigger）
-  goalsRefreshTrigger.value
-  
-  // 从本地存储获取真实的写作目标数据
-  const goalsData = JSON.parse(localStorage.getItem('writingGoals') || '[]')
-  const active = goalsData.filter(goal => goal.status === 'active')
-  
-  // 按优先级排序（priority字段，数字越小优先级越高），如果没有priority则按创建时间排序
-  return active.sort((a, b) => {
-    if (a.priority !== undefined && b.priority !== undefined) {
-      return a.priority - b.priority
-    }
-    if (a.priority !== undefined) return -1
-    if (b.priority !== undefined) return 1
-    return new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
-  })
-})
+// 最近项目
+const recentProjects = ref([])
 
-// 首页显示的目标（限制数量）
-const displayedGoals = computed(() => {
-  return activeGoals.value.slice(0, maxDisplayGoals.value)
-})
+// 快捷键对话框
+const shortcutsDialogVisible = ref(false)
 
-// 总的活跃目标数量
-const totalActiveGoals = computed(() => {
-  return activeGoals.value.length
-})
-
-// 兼容旧的currentGoal计算属性（保持向后兼容）
-const currentGoal = computed(() => {
-  const daily = activeGoals.value.find(goal => goal.type === 'daily')
-  const weekly = activeGoals.value.find(goal => goal.type === 'weekly')
-  
-  return {
-    dailyTarget: daily?.targetValue || 2000,
-    dailyWritten: daily?.currentValue || 0,
-    weeklyTarget: weekly?.targetValue || 14000,
-    weeklyWritten: weekly?.currentValue || 0,
-    streak: 0
-  }
-})
-
-const recentNovels = computed(() => {
-  // 从本地存储获取真实的小说数据
-  const novelsData = JSON.parse(localStorage.getItem('novels') || '[]')
-  
-  // 按更新时间排序，取前3个
-  return novelsData
-    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-    .slice(0, 3)
-    .map(novel => ({
-      id: novel.id,
-      title: novel.title,
-      description: novel.description,
-      wordCount: novel.wordCount || 0,
-      updatedAt: new Date(novel.updatedAt || Date.now()),
-      cover: novel.cover
-    }))
-})
-
+// ============================================
 // 计算属性
-const dailyProgress = computed(() => {
-  return Math.min(100, Math.round((currentGoal.value.dailyWritten / currentGoal.value.dailyTarget) * 100))
-})
+// ============================================
 
-const weeklyProgress = computed(() => {
-  return Math.min(100, Math.round((currentGoal.value.weeklyWritten / currentGoal.value.weeklyTarget) * 100))
-})
+// 快捷入口项目
+const quickAccessItems = computed(() => [
+  { route: 'master', label: t('nav.master'), icon: MagicStick },
+  { route: 'focus', label: t('nav.focus'), icon: EditPen },
+  { route: 'writer', label: t('nav.writer'), icon: Edit },
+  { route: 'cards', label: t('nav.cards'), icon: Document },
+  { route: 'export', label: t('nav.export'), icon: Share },
+  { route: 'gamification', label: t('nav.gamification'), icon: TrendCharts }
+])
 
-// 新增辅助函数
-const getGoalProgress = (goal) => {
-  if (!goal.targetValue || goal.targetValue === 0) return 0
-  return Math.min(100, Math.round((goal.currentValue / goal.targetValue) * 100))
-}
-
-const calculateStreak = () => {
-  // 简化的连续天数计算逻辑
-  // 可以根据实际需求实现更复杂的逻辑
-  return 0
-}
-
-const getGoalTypeText = (type) => {
-  const typeMap = {
-    daily: '每日',
-    weekly: '每周', 
-    monthly: '每月',
-    custom: '自定义'
+// 快捷键分类
+const shortcutsCategories = computed(() => [
+  {
+    title: t('help.shortcuts.global.title'),
+    items: [
+      t('help.shortcuts.global.commandPalette'),
+      t('help.shortcuts.global.newNovel'),
+      t('help.shortcuts.global.save'),
+      t('help.shortcuts.global.search'),
+      t('help.shortcuts.global.settings')
+    ]
+  },
+  {
+    title: t('help.shortcuts.editor.title'),
+    items: [
+      t('help.shortcuts.editor.bold'),
+      t('help.shortcuts.editor.italic'),
+      t('help.shortcuts.editor.underline'),
+      t('help.shortcuts.editor.undo'),
+      t('help.shortcuts.editor.redo')
+    ]
+  },
+  {
+    title: t('help.shortcuts.navigation.title'),
+    items: [
+      t('help.shortcuts.navigation.home'),
+      t('help.shortcuts.navigation.back'),
+      t('help.shortcuts.navigation.forward'),
+      t('help.shortcuts.navigation.skipToContent')
+    ]
   }
-  return typeMap[type] || '目标'
-}
+])
 
+// ============================================
 // 方法
-const formatNumber = (num) => {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + '万'
-  }
-  return num.toLocaleString()
+// ============================================
+
+/**
+ * 导航到指定路由
+ * @param {string} routeName - 路由名称
+ */
+function navigateTo(routeName) {
+  router.push({ name: routeName })
 }
 
-const formatTime = (date) => {
+/**
+ * 跳转到小说列表页
+ */
+function goToNovels() {
+  navigateTo('NovelManagement')
+}
+
+/**
+ * 跳转到写作页面
+ */
+function goToWriter() {
+  navigateTo('Writer')
+}
+
+/**
+ * 打开项目
+ * @param {Object} project - 项目对象
+ */
+function openProject(project) {
+  router.push({
+    name: 'ChapterManagement',
+    query: { novelId: project.id }
+  })
+}
+
+/**
+ * 继续写作
+ * @param {Object} project - 项目对象
+ */
+function continueWriting(project) {
+  router.push({
+    name: 'Writer',
+    query: { novelId: project.id }
+  })
+}
+
+/**
+ * 显示新手引导
+ */
+function showBeginnerGuide() {
+  ElMessage.info(t('help.beginner.step1'))
+}
+
+/**
+ * 显示快捷键帮助
+ */
+function showShortcuts() {
+  shortcutsDialogVisible.value = true
+}
+
+/**
+ * 格式化相对时间
+ * @param {string|Date} date - 日期
+ * @returns {string} 格式化后的时间
+ */
+function formatRelativeTime(date) {
   const now = new Date()
-  const diff = now - date
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const days = Math.floor(hours / 24)
+  const target = new Date(date)
+  const diff = now - target
   
-  if (days > 0) {
-    return `${days}天前`
-  } else if (hours > 0) {
-    return `${hours}小时前`
-  } else {
-    return '刚刚'
-  }
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  
+  if (minutes < 1) return t('common.time.justNow')
+  if (minutes < 60) return t('common.time.minutesAgo', { n: minutes })
+  if (hours < 24) return t('common.time.hoursAgo', { n: hours })
+  if (days < 7) return t('common.time.daysAgo', { n: days })
+  
+  return formatRelative(-days, 'day')
 }
 
-const getProgressColor = (percentage) => {
-  if (percentage >= 100) return '#67c23a'
-  if (percentage >= 80) return '#e6a23c'
-  if (percentage >= 60) return '#409eff'
-  return '#f56c6c'
+/**
+ * 加载统计数据
+ */
+async function loadStats() {
+  // 模拟数据，实际应从 store 或 API 获取
+  todayWords.value = 2580
+  streakDays.value = 15
+  totalWords.value = 156789
 }
 
-const createNovel = () => {
-  router.push('/novels')
+/**
+ * 加载最近项目
+ */
+async function loadRecentProjects() {
+  // 模拟数据，实际应从 store 或 API 获取
+  recentProjects.value = [
+    {
+      id: 1,
+      title: '星际迷途',
+      chapterCount: 45,
+      wordCount: 89234,
+      updatedAt: new Date(Date.now() - 3600000)
+    },
+    {
+      id: 2,
+      title: '都市修仙传',
+      chapterCount: 120,
+      wordCount: 245678,
+      updatedAt: new Date(Date.now() - 86400000)
+    },
+    {
+      id: 3,
+      title: '时光倒流',
+      chapterCount: 28,
+      wordCount: 56789,
+      updatedAt: new Date(Date.now() - 172800000)
+    }
+  ]
 }
 
-const openNovel = (novel) => {
-  // 跳转到小说编辑页面
-  router.push(`/writer?novelId=${novel.id}`)
-}
+// ============================================
+// 生命周期钩子
+// ============================================
 
-const viewAllNovels = () => {
-  router.push('/novels')
-}
-
-const openPrompts = () => {
-  router.push('/prompts')
-}
-
-const openChapters = () => {
-  router.push('/chapters')
-}
-
-const openBilling = () => {
-  router.push('/billing')
-}
-
-// 页面获得焦点时重新计算数据，确保数据同步
-const refreshData = () => {
-  goalsRefreshTrigger.value++
-  console.log('首页刷新目标数据')
-}
-
-// 暴露刷新函数给全局，以便其他页面调用
-window.refreshHomeData = refreshData
-
-// 生命周期
 onMounted(() => {
-  // 监听localStorage变化，以便实时更新目标数据
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'writingGoals') {
-      refreshData()
-    }
-  })
-  
-  // 监听页面可见性变化
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      refreshData()
-    }
-  })
+  loadStats()
+  loadRecentProjects()
 })
 </script>
 
 <style scoped>
+/* ============================================
+   首页样式
+   ============================================ */
+
 .home-page {
-  padding: 0;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
+/* -------------------------------------------
+   欢迎区域
+   ------------------------------------------- */
 .welcome-section {
-  margin-bottom: 20px;
-}
-
-.welcome-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-}
-
-.welcome-card :deep(.el-card__body) {
-  padding: 40px;
+  margin-bottom: 32px;
 }
 
 .welcome-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  color: white;
+  margin-bottom: 24px;
+}
+
+.welcome-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 12px;
   color: white;
 }
 
-.welcome-text h1 {
-  margin: 0 0 10px 0;
-  font-size: 32px;
-  font-weight: 600;
-}
-
-.welcome-text p {
-  margin: 0;
-  font-size: 16px;
+.welcome-slogan {
+  font-size: 1.25rem;
   opacity: 0.9;
+  margin-bottom: 24px;
 }
 
 .welcome-actions {
   display: flex;
-  gap: 15px;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.stats-section {
-  margin-bottom: 20px;
+/* 今日统计卡片 */
+.today-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
 }
 
 .stat-card {
-  border: none;
-  transition: transform 0.3s;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.stat-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: white;
-}
-
-.stat-icon.novels {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-}
-
-.stat-icon.words {
-  background: linear-gradient(135deg, #f093fb, #f5576c);
-}
-
-.stat-icon.chapters {
-  background: linear-gradient(135deg, #4facfe, #00f2fe);
-}
-
-.stat-icon.tokens {
-  background: linear-gradient(135deg, #43e97b, #38f9d7);
+  transform: translateY(-4px);
 }
 
 .stat-content {
-  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.stat-number {
-  font-size: 24px;
+.stat-icon {
+  color: var(--primary-color);
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 1.5rem;
   font-weight: 600;
-  color: #303133;
-  line-height: 1;
+  color: var(--text-primary);
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #909399;
-  margin-top: 5px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
-.main-content {
+/* -------------------------------------------
+   功能展示区域
+   ------------------------------------------- */
+.features-section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
   margin-bottom: 20px;
+  color: var(--text-primary);
 }
 
-/* 卡片高度对齐 */
-.goals-card, 
-.quick-actions-card {
-  height: 100%;
-  min-height: 380px;
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
 }
 
-.goals-card :deep(.el-card__body),
-.quick-actions-card :deep(.el-card__body) {
-  height: 100%;
+.feature-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+}
+
+.feature-header {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  font-size: 1.125rem;
 }
 
-.goals-content {
-  flex: 1;
+.feature-icon {
+  color: var(--primary-color);
+}
+
+.feature-description {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.feature-links {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  min-height: 300px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.quick-actions {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+/* -------------------------------------------
+   最近项目区域
+   ------------------------------------------- */
+.recent-section {
+  margin-bottom: 32px;
 }
 
-.card-header {
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: 600;
-}
-
-.goals-content {
-  padding: 10px 0;
-}
-
-.goal-item {
   margin-bottom: 20px;
-  padding: 15px;
-  background: #fafafa;
-  border-radius: 8px;
-  border: 1px solid #f0f0f0;
 }
 
-.goal-item:last-child {
-  margin-bottom: 15px;
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
 }
 
-.goal-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
+.project-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.goal-label {
-  font-size: 14px;
-  color: #606266;
+.project-card:hover {
+  transform: translateY(-4px);
 }
 
-.goal-value {
-  font-size: 14px;
+.project-card:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.project-content {
+  margin-bottom: 12px;
+}
+
+.project-title {
+  font-size: 1.125rem;
   font-weight: 600;
-  color: #303133;
+  margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
-.goal-progress {
-  position: relative;
+.project-meta {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
 }
 
-.progress-text {
-  display: block;
-  text-align: right;
-  font-size: 12px;
-  color: #909399;
-  margin-top: 5px;
-  line-height: 1;
+.project-time {
+  font-size: 0.75rem;
+  color: var(--text-placeholder);
 }
 
-.streak-info {
+.project-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* -------------------------------------------
+   快捷入口区域
+   ------------------------------------------- */
+.quick-access-section {
+  margin-bottom: 32px;
+}
+
+.quick-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.quick-button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 15px;
-  background: #f8f9fa;
+  padding: 12px 20px;
   border-radius: 8px;
-  margin-top: auto;
-  margin-bottom: 0;
+  background: var(--background-base);
+  border: 1px solid var(--border-base);
+  transition: all 0.2s ease;
 }
 
-.streak-icon {
-  color: #f39c12;
-  font-size: 18px;
-}
-
-.no-goals {
-  padding: 20px;
-  text-align: center;
-}
-
-.view-all-goals {
-  text-align: center;
-  padding: 10px;
-  border-top: 1px solid #f0f0f0;
-  margin-top: 15px;
-}
-
-.view-all-goals .el-button {
-  color: #409eff;
-  font-size: 12px;
-}
-
-.quick-actions {
-  padding: 10px 0;
-}
-
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  height: 100%;
-  align-content: start;
-}
-
-.action-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 25px 20px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  min-height: 100px;
-  justify-content: center;
-}
-
-.action-item:hover {
-  border-color: #409eff;
-  background-color: #f0f9ff;
-  transform: translateY(-2px);
-}
-
-.action-icon {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  background: #409eff;
+.quick-button:hover {
+  background: var(--primary-color);
   color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
+  border-color: var(--primary-color);
 }
 
-.recent-novels-section {
+.quick-button:hover .el-icon {
+  color: white;
+}
+
+/* -------------------------------------------
+   帮助提示区域
+   ------------------------------------------- */
+.help-section {
+  margin-bottom: 32px;
+}
+
+.help-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.help-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.help-card:hover {
+  transform: translateY(-4px);
+}
+
+.help-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.help-icon {
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.help-info h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.help-info p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* -------------------------------------------
+   快捷键对话框
+   ------------------------------------------- */
+.shortcuts-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.shortcuts-category {
   margin-bottom: 20px;
 }
 
-.novels-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.novel-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.novel-item:hover {
-  border-color: #409eff;
-  background-color: #f0f9ff;
-}
-
-.novel-cover {
-  width: 60px;
-  height: 80px;
-  border-radius: 4px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.novel-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.default-cover {
-  width: 100%;
-  height: 100%;
-  background: #f5f7fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #c0c4cc;
-  font-size: 24px;
-}
-
-.novel-info {
-  flex: 1;
-}
-
-.novel-title {
-  margin: 0 0 5px 0;
-  font-size: 16px;
+.shortcuts-category h4 {
+  font-size: 1rem;
   font-weight: 600;
-  color: #303133;
+  margin-bottom: 12px;
+  color: var(--text-primary);
 }
 
-.novel-desc {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  color: #606266;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.shortcuts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-.novel-meta {
-  display: flex;
-  gap: 15px;
-  font-size: 12px;
-  color: #909399;
+.shortcuts-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-lighter);
+  color: var(--text-regular);
+  font-size: 0.875rem;
 }
 
-.novel-actions {
-  flex-shrink: 0;
+.shortcuts-list li:last-child {
+  border-bottom: none;
 }
 
-.empty-novels {
-  padding: 40px 0;
-}
-
-/* 响应式设计 */
+/* -------------------------------------------
+   响应式设计
+   ------------------------------------------- */
 @media (max-width: 768px) {
+  .home-page {
+    padding: 16px;
+  }
+
   .welcome-content {
+    padding: 32px 16px;
+  }
+
+  .welcome-title {
+    font-size: 1.75rem;
+  }
+
+  .welcome-slogan {
+    font-size: 1rem;
+  }
+
+  .welcome-actions {
     flex-direction: column;
-    text-align: center;
-    gap: 20px;
   }
-  
-  .goals-card, 
-  .quick-actions-card {
-    min-height: auto;
+
+  .welcome-actions .el-button {
+    width: 100%;
   }
-  
-  .action-grid {
+
+  .today-stats {
     grid-template-columns: 1fr;
   }
-  
-  .novel-item {
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-buttons {
     flex-direction: column;
-    text-align: center;
   }
-  
-  .goals-content {
-    min-height: auto;
+
+  .quick-button {
+    width: 100%;
+    justify-content: center;
   }
+
+  .help-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------
+   无障碍增强
+   ------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .project-card,
+  .stat-card,
+  .help-card,
+  .quick-button {
+    transition: none;
+  }
+}
+
+/* 高对比度模式 */
+.a11y-high-contrast .welcome-content {
+  background: #000;
+  border: 2px solid #fff;
+}
+
+.a11y-high-contrast .feature-card,
+.a11y-high-contrast .project-card,
+.a11y-high-contrast .stat-card,
+.a11y-high-contrast .help-card {
+  border: 2px solid #000;
 }
 </style>

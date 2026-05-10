@@ -28,6 +28,68 @@ import ExportCenter from '../views/ExportCenter.vue'
 import PluginManager from '../views/PluginManager.vue'
 import Collaboration from '../views/Collaboration.vue'
 
+// v2.2 高级可视化模块
+import IndexCards from '../views/IndexCards.vue'
+import MultiViewEditor from '../views/MultiViewEditor.vue'
+
+// v2.2 长篇小说引擎模块
+import MegaNovelManager from '../views/MegaNovelManager.vue'
+
+// 文学工坊页面
+const LiteraryWorkshop = {
+  template: `
+    <div class="page-container">
+      <el-card>
+        <template #header>
+          <div class="card-header">
+            <span>文学工坊</span>
+            <el-button type="primary" size="small">开始创作</el-button>
+          </div>
+        </template>
+        <el-empty description="文学工坊功能开发中..." />
+      </el-card>
+    </div>
+  `
+}
+
+// 协作中心页面
+const CollaborationHub = {
+  template: `
+    <div class="page-container">
+      <el-card>
+        <template #header>
+          <div class="card-header">
+            <span>协作中心</span>
+            <el-button type="primary" size="small">邀请协作</el-button>
+          </div>
+        </template>
+        <el-empty description="协作中心功能开发中..." />
+      </el-card>
+    </div>
+  `
+}
+
+// 审阅模式页面
+const ReviewMode = {
+  template: `
+    <div class="page-container">
+      <el-card>
+        <template #header>
+          <div class="card-header">
+            <span>审阅模式</span>
+            <el-button-group>
+              <el-button size="small">原始版本</el-button>
+              <el-button size="small">最终版本</el-button>
+              <el-button size="small">标记模式</el-button>
+            </el-button-group>
+          </div>
+        </template>
+        <el-empty description="审阅模式功能开发中..." />
+      </el-card>
+    </div>
+  `
+}
+
 const routes = [
   {
     path: '/',
@@ -75,6 +137,18 @@ const routes = [
         name: 'IdeaBoard',
         component: IdeaBoard
       },
+      // v2.1 新增：索引卡片
+      {
+        path: 'cards',
+        name: 'IndexCards',
+        component: IndexCards
+      },
+      // v2.1 新增：四视图编辑器
+      {
+        path: 'multi-view',
+        name: 'MultiViewEditor',
+        component: MultiViewEditor
+      },
       // ===== 项目管理 =====
       {
         path: 'novels',
@@ -96,6 +170,12 @@ const routes = [
         name: 'ChapterGraph',
         component: ChapterGraph
       },
+      // v2.2 新增：百万字管理
+      {
+        path: 'mega-novel',
+        name: 'MegaNovelManager',
+        component: MegaNovelManager
+      },
       // ===== 叙事工程 =====
       {
         path: 'foreshadowing',
@@ -106,6 +186,12 @@ const routes = [
         path: 'narrative',
         name: 'NarrativeStructure',
         component: NarrativeStructure
+      },
+      // v2.1 新增：文学工坊
+      {
+        path: 'literary',
+        name: 'LiteraryWorkshop',
+        component: LiteraryWorkshop
       },
       // ===== 资源库 =====
       {
@@ -138,6 +224,18 @@ const routes = [
         path: 'collaboration',
         name: 'Collaboration',
         component: Collaboration
+      },
+      // v2.1 新增：协作中心
+      {
+        path: 'collaboration-hub',
+        name: 'CollaborationHub',
+        component: CollaborationHub
+      },
+      // v2.1 新增：审阅模式
+      {
+        path: 'review',
+        name: 'ReviewMode',
+        component: ReviewMode
       },
       // ===== 扩展 =====
       {

@@ -1,22 +1,55 @@
-/* 全局样式 */
+/* ============================================
+   云书 - 全局样式
+   包含基础样式、无障碍支持、主题变量等
+   ============================================ */
+
+/* ============================================
+   一、CSS 变量定义
+   ============================================ */
 :root {
+  /* 主色调 */
   --primary-color: #409eff;
+  --primary-light: #66b1ff;
+  --primary-dark: #337ecc;
+  
+  /* 功能色 */
   --success-color: #67c23a;
   --warning-color: #e6a23c;
   --danger-color: #f56c6c;
   --info-color: #909399;
+  
+  /* 文字颜色 */
   --text-primary: #303133;
   --text-regular: #606266;
   --text-secondary: #909399;
   --text-placeholder: #c0c4cc;
+  
+  /* 边框颜色 */
   --border-base: #dcdfe6;
   --border-light: #e4e7ed;
   --border-lighter: #ebeef5;
   --border-extra-light: #f2f6fc;
+  
+  /* 背景颜色 */
   --background-base: #f5f7fa;
   --background-light: #fafafa;
+  --background-dark: #e4e7ed;
+  
+  /* 焦点样式 */
+  --focus-outline-color: #409eff;
+  --focus-outline-width: 2px;
+  --focus-outline-offset: 2px;
+  
+  /* 高对比度模式颜色 */
+  --hc-text: #000000;
+  --hc-background: #ffffff;
+  --hc-link: #0000ff;
+  --hc-focus: #000000;
 }
 
+/* ============================================
+   二、基础重置样式
+   ============================================ */
 * {
   margin: 0;
   padding: 0;
@@ -28,13 +61,17 @@ html, body {
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
   color: var(--text-primary);
   background-color: #fff;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 #app {
   height: 100%;
 }
 
-/* 滚动条样式 */
+/* ============================================
+   三、滚动条样式
+   ============================================ */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -54,7 +91,9 @@ html, body {
   background: #a8a8a8;
 }
 
-/* 工具类 */
+/* ============================================
+   四、工具类
+   ============================================ */
 .flex {
   display: flex;
 }
@@ -83,4 +122,579 @@ html, body {
 
 .ml-2 {
   margin-left: 8px;
+}
+
+/* ============================================
+   五、无障碍支持样式
+   ============================================ */
+
+/* 5.1 跳过导航链接 */
+.skip-links-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  padding: 8px 16px;
+  background: var(--primary-color);
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.skip-link:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  outline: 3px solid var(--focus-outline-color);
+  outline-offset: 2px;
+}
+
+/* 5.2 焦点指示器样式 */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
+/* 按钮焦点样式 */
+button:focus-visible,
+.el-button:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.2);
+}
+
+/* 链接焦点样式 */
+a:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+  text-decoration: underline;
+}
+
+/* 输入框焦点样式 */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.el-input__inner:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: 0;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+/* 5.3 屏幕阅读器专用类 */
+/* 视觉隐藏但屏幕阅读器可访问 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 聚焦时显示 */
+.sr-only-focusable:focus,
+.sr-only-focusable:focus-within {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* 完全隐藏（包括屏幕阅读器） */
+.hidden-all {
+  display: none !important;
+}
+
+/* 仅对屏幕阅读器隐藏 */
+.sr-hidden {
+  visibility: hidden;
+}
+
+/* 5.4 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 手动启用的减少动画模式 */
+.a11y-reduced-motion *,
+.a11y-reduced-motion *::before,
+.a11y-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* 5.5 高对比度模式 */
+@media (prefers-contrast: more) {
+  :root {
+    --text-primary: #000000;
+    --text-regular: #000000;
+    --text-secondary: #000000;
+    --border-base: #000000;
+    --border-light: #000000;
+  }
+  
+  * {
+    border-color: #000000 !important;
+  }
+  
+  a {
+    text-decoration: underline;
+  }
+}
+
+/* 手动启用的高对比度模式 */
+.a11y-high-contrast {
+  --text-primary: #000000;
+  --text-regular: #000000;
+  --text-secondary: #000000;
+  --border-base: #000000;
+  --border-light: #000000;
+  --background-base: #ffffff;
+  --background-light: #ffffff;
+}
+
+.a11y-high-contrast * {
+  border-color: #000000 !important;
+}
+
+.a11y-high-contrast a {
+  text-decoration: underline;
+  color: #0000ff !important;
+}
+
+.a11y-high-contrast button,
+.a11y-high-contrast .el-button {
+  border: 2px solid #000000 !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.a11y-high-contrast input,
+.a11y-high-contrast textarea,
+.a11y-high-contrast select {
+  border: 2px solid #000000 !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.a11y-high-contrast .el-card {
+  border: 2px solid #000000 !important;
+}
+
+.a11y-high-contrast .el-menu {
+  border-right: 2px solid #000000 !important;
+}
+
+.a11y-high-contrast .el-dialog {
+  border: 2px solid #000000 !important;
+}
+
+/* 5.6 大字体模式 */
+.a11y-large-text {
+  font-size: 120% !important;
+}
+
+.a11y-large-text h1 {
+  font-size: 2.5rem !important;
+}
+
+.a11y-large-text h2 {
+  font-size: 2rem !important;
+}
+
+.a11y-large-text h3 {
+  font-size: 1.75rem !important;
+}
+
+.a11y-large-text h4 {
+  font-size: 1.5rem !important;
+}
+
+.a11y-large-text p,
+.a11y-large-text li,
+.a11y-large-text span {
+  font-size: 1.1rem !important;
+}
+
+.a11y-large-text button,
+.a11y-large-text .el-button {
+  font-size: 1rem !important;
+  padding: 12px 24px !important;
+}
+
+.a11y-large-text input,
+.a11y-large-text textarea {
+  font-size: 1.1rem !important;
+  padding: 12px !important;
+}
+
+/* 5.7 色盲友好模式 */
+/* 红绿色盲（最常见） */
+.a11y-colorblind-deuteranopia {
+  --success-color: #0077bb;
+  --danger-color: #cc6677;
+  --warning-color: #ddcc77;
+}
+
+.a11y-colorblind-deuteranopia .el-button--success {
+  background-color: #0077bb !important;
+  border-color: #0077bb !important;
+}
+
+.a11y-colorblind-deuteranopia .el-button--danger {
+  background-color: #cc6677 !important;
+  border-color: #cc6677 !important;
+}
+
+.a11y-colorblind-deuteranopia .el-button--warning {
+  background-color: #ddcc77 !important;
+  border-color: #ddcc77 !important;
+}
+
+/* 红色盲 */
+.a11y-colorblind-protanopia {
+  --success-color: #0077bb;
+  --danger-color: #cc6677;
+  --warning-color: #ddcc77;
+}
+
+/* 蓝黄色盲 */
+.a11y-colorblind-tritanopia {
+  --success-color: #009988;
+  --danger-color: #ee3377;
+  --warning-color: #eebb33;
+}
+
+/* 5.8 实时区域样式 */
+#a11y-live-region-container {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 5.9 键盘导航增强 */
+/* 可聚焦元素的默认样式 */
+[tabindex="0"]:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
+/* 角色元素的焦点样式 */
+[role="button"]:focus-visible,
+[role="link"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="tab"]:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+/* 5.10 表单无障碍样式 */
+/* 必填字段标记 */
+[aria-required="true"]::after,
+.required-field::after {
+  content: " *";
+  color: var(--danger-color);
+}
+
+/* 错误状态 */
+[aria-invalid="true"] {
+  border-color: var(--danger-color) !important;
+}
+
+[aria-invalid="true"]:focus-visible {
+  outline-color: var(--danger-color);
+}
+
+/* 错误消息 */
+.error-message {
+  color: var(--danger-color);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* 帮助文本 */
+.help-text {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* 5.11 表格无障碍样式 */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid var(--border-base);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+th {
+  background-color: var(--background-base);
+  font-weight: 600;
+}
+
+/* 斑马纹表格 */
+.a11y-striped-table tbody tr:nth-child(odd) {
+  background-color: var(--background-light);
+}
+
+/* 悬停高亮 */
+.a11y-hover-highlight tbody tr:hover {
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+/* 5.12 图片无障碍 */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 装饰性图片（屏幕阅读器忽略） */
+img[alt=""],
+img[role="presentation"] {
+  display: inline-block;
+}
+
+/* 5.13 链接无障碍 */
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 外部链接标记 */
+a[target="_blank"]::after {
+  content: " (在新窗口打开)";
+  font-size: 0.8em;
+  color: var(--text-secondary);
+}
+
+/* 下载链接标记 */
+a[download]::after {
+  content: " (下载)";
+  font-size: 0.8em;
+  color: var(--text-secondary);
+}
+
+/* 5.14 按钮无障碍 */
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* 5.15 图标按钮 */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+}
+
+.icon-button:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+/* ============================================
+   六、响应式设计
+   ============================================ */
+@media (max-width: 768px) {
+  .skip-links-nav {
+    padding: 4px;
+  }
+  
+  .skip-link:focus {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+  
+  /* 移动端增大触摸目标 */
+  button,
+  a,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ============================================
+   七、打印样式
+   ============================================ */
+@media print {
+  /* 隐藏跳过链接 */
+  .skip-links-nav,
+  .skip-link {
+    display: none !important;
+  }
+  
+  /* 显示链接地址 */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: var(--text-secondary);
+  }
+  
+  /* 避免分页 */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  
+  img, table, figure {
+    page-break-inside: avoid;
+  }
+}
+
+/* ============================================
+   八、动画过渡
+   ============================================ */
+/* 淡入淡出 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 滑动 */
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-enter-from {
+  transform: translateX(-100%);
+}
+
+.slide-leave-to {
+  transform: translateX(100%);
+}
+
+/* 缩放 */
+.zoom-enter-active,
+.zoom-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.zoom-enter-from,
+.zoom-leave-to {
+  transform: scale(0.9);
+  opacity: 0;
+}
+
+/* ============================================
+   九、Element Plus 覆盖样式
+   ============================================ */
+/* 对话框无障碍 */
+.el-dialog {
+  outline: none;
+}
+
+.el-dialog:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+}
+
+/* 菜单项焦点 */
+.el-menu-item:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: -2px;
+}
+
+/* 标签页焦点 */
+.el-tabs__item:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: -2px;
+}
+
+/* 下拉菜单项焦点 */
+.el-dropdown-menu__item:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: -2px;
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+/* 选择器焦点 */
+.el-select:focus-visible .el-input__wrapper {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: 0;
+}
+
+/* 开关焦点 */
+.el-switch:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
+/* 复选框焦点 */
+.el-checkbox:focus-visible .el-checkbox__inner {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: 2px;
+}
+
+/* 单选框焦点 */
+.el-radio:focus-visible .el-radio__inner {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: 2px;
 }
