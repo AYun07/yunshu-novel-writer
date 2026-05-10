@@ -16,6 +16,18 @@ import MasterCreation from '../views/MasterCreation.vue'
 import StyleImitation from '../views/StyleImitation.vue'
 import NovelWorkshop from '../views/NovelWorkshop.vue'
 
+// v2.0 新增页面
+import Foreshadowing from '../views/Foreshadowing.vue'
+import NarrativeStructure from '../views/NarrativeStructure.vue'
+import TextAnalysis from '../views/TextAnalysis.vue'
+import FocusMode from '../views/FocusMode.vue'
+import Gamification from '../views/Gamification.vue'
+import IdeaBoard from '../views/IdeaBoard.vue'
+import ChapterGraph from '../views/ChapterGraph.vue'
+import ExportCenter from '../views/ExportCenter.vue'
+import PluginManager from '../views/PluginManager.vue'
+import Collaboration from '../views/Collaboration.vue'
+
 const routes = [
   {
     path: '/',
@@ -26,61 +38,7 @@ const routes = [
         name: 'HomePage',
         component: HomePage
       },
-      {
-        path: 'prompts',
-        name: 'PromptsLibrary',
-        component: PromptsLibrary
-      },
-      {
-        path: 'novels',
-        name: 'NovelManagement',
-        component: NovelManagement
-      },
-      {
-        path: 'goals',
-        name: 'WritingGoals',
-        component: WritingGoals
-      },
-      {
-        path: 'billing',
-        name: 'TokenBilling',
-        component: TokenBilling
-      },
-      {
-        path: 'settings',
-        name: 'Settings',
-        component: Settings
-      },
-      {
-        path: 'chapters',
-        name: 'ChapterManagement',
-        component: ChapterManagement
-      },
-      {
-        path: 'writer',
-        name: 'Writer',
-        component: Writer
-      },
-      {
-        path: 'genres',
-        name: 'GenreManagement',
-        component: GenreManagement
-      },
-      {
-        path: 'tools',
-        name: 'ToolsLibrary',
-        component: ToolsLibrary
-      },
-      {
-        path: 'short-story',
-        name: 'ShortStory',
-        component: ShortStory
-      },
-      {
-        path: 'book-analysis',
-        name: 'BookAnalysis',
-        component: BookAnalysis
-      },
+      // ===== AI创作 =====
       {
         path: 'master',
         name: 'MasterCreation',
@@ -95,6 +53,118 @@ const routes = [
         path: 'workshop',
         name: 'NovelWorkshop',
         component: NovelWorkshop
+      },
+      {
+        path: 'short-story',
+        name: 'ShortStory',
+        component: ShortStory
+      },
+      // ===== 写作工具 =====
+      {
+        path: 'focus',
+        name: 'FocusMode',
+        component: FocusMode
+      },
+      {
+        path: 'analysis',
+        name: 'TextAnalysis',
+        component: TextAnalysis
+      },
+      {
+        path: 'ideas',
+        name: 'IdeaBoard',
+        component: IdeaBoard
+      },
+      // ===== 项目管理 =====
+      {
+        path: 'novels',
+        name: 'NovelManagement',
+        component: NovelManagement
+      },
+      {
+        path: 'chapters',
+        name: 'ChapterManagement',
+        component: ChapterManagement
+      },
+      {
+        path: 'writer',
+        name: 'Writer',
+        component: Writer
+      },
+      {
+        path: 'graph',
+        name: 'ChapterGraph',
+        component: ChapterGraph
+      },
+      // ===== 叙事工程 =====
+      {
+        path: 'foreshadowing',
+        name: 'Foreshadowing',
+        component: Foreshadowing
+      },
+      {
+        path: 'narrative',
+        name: 'NarrativeStructure',
+        component: NarrativeStructure
+      },
+      // ===== 资源库 =====
+      {
+        path: 'prompts',
+        name: 'PromptsLibrary',
+        component: PromptsLibrary
+      },
+      {
+        path: 'genres',
+        name: 'GenreManagement',
+        component: GenreManagement
+      },
+      {
+        path: 'tools',
+        name: 'ToolsLibrary',
+        component: ToolsLibrary
+      },
+      {
+        path: 'book-analysis',
+        name: 'BookAnalysis',
+        component: BookAnalysis
+      },
+      // ===== 导出与协作 =====
+      {
+        path: 'export',
+        name: 'ExportCenter',
+        component: ExportCenter
+      },
+      {
+        path: 'collaboration',
+        name: 'Collaboration',
+        component: Collaboration
+      },
+      // ===== 扩展 =====
+      {
+        path: 'plugins',
+        name: 'PluginManager',
+        component: PluginManager
+      },
+      {
+        path: 'gamification',
+        name: 'Gamification',
+        component: Gamification
+      },
+      // ===== 系统 =====
+      {
+        path: 'goals',
+        name: 'WritingGoals',
+        component: WritingGoals
+      },
+      {
+        path: 'billing',
+        name: 'TokenBilling',
+        component: TokenBilling
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: Settings
       }
     ]
   }
