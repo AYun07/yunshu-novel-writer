@@ -315,9 +315,9 @@ async function loadPage() {
 function getIconPath() {
   // 图标路径（根据平台不同）
   const iconPaths = {
-    darwin: path.join(__dirname, '../public/icon.icns'),  // macOS
+    darwin: path.join(__dirname, '../build/icon.png'),   // macOS
     win32: path.join(__dirname, '../public/icon.ico'),    // Windows
-    linux: path.join(__dirname, '../public/icon.png'),    // Linux
+    linux: path.join(__dirname, '../build/icon.png'),    // Linux
   };
 
   const iconPath = iconPaths[process.platform];
