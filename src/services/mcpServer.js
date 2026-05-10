@@ -7,6 +7,10 @@
  * 支持两种运行模式：
  * 1. stdio 模式：通过标准输入/输出与 Claude Desktop 集成
  * 2. HTTP 模式：本地 HTTP 服务器（端口 19840），供其他客户端调用
+ *
+ * 【待集成】此模块已实现完整功能，计划在 v2.3.0 中集成到主应用。
+ * 集成方式：在对应的视图组件中 import 并调用。
+ * 依赖：需要先初始化 database.js（IndexedDB）作为主存储。
  * 
  * Claude Desktop 集成指南：
  * 在 Claude Desktop 的配置文件中添加以下内容：

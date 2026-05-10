@@ -8,9 +8,11 @@
  * 4. 上下文窗口优化：动态Token计算、关键信息优先注入、冗余信息裁剪
  * 5. 质量控制：自动检查、不合格重写、人工审核队列
  * 6. 进度追踪：字数统计、写作热力图、预计完成时间
+ *
+ * 注意：此模块使用纯 JavaScript 对象/变量管理状态，不依赖 Vue 响应式。
+ * 如需在视图组件中使用响应式数据，请在组件层通过 ref/reactive 包装。
  */
 
-import { ref, reactive, computed } from 'vue'
 import apiService from './api.js'
 
 // ==================== 常量定义 ====================
@@ -105,36 +107,38 @@ function formatDate(date) {
 class MegaNovelEngine {
   constructor() {
     // ==================== 项目状态 ====================
-    
+    // 注意：以下使用纯 JS 变量/对象管理状态，不使用 Vue 响应式。
+    // 如需响应式，请在视图组件层通过 ref/reactive 包装。
+
     // 当前项目
-    this.currentProject = ref(null)
+    this.currentProject = null
     
     // 卷列表
-    this.volumes = ref([])
+    this.volumes = []
     
     // 章节列表
-    this.chapters = ref([])
+    this.chapters = []
     
     // 角色列表
-    this.characters = ref([])
+    this.characters = []
     
     // 世界观设定
-    this.worldSettings = ref([])
+    this.worldSettings = []
     
     // 摘要链（每章摘要）
-    this.summaryChain = ref([])
+    this.summaryChain = []
     
     // 角色状态追踪
-    this.characterStates = ref({})
+    this.characterStates = {}
     
     // 生成队列
-    this.generationQueue = ref([])
+    this.generationQueue = []
     
     // 审核队列
-    this.reviewQueue = ref([])
+    this.reviewQueue = []
     
     // 进度统计
-    this.progress = reactive({
+    this.progress = {
       totalWords: 0,
       targetWords: 1000000,
       completedChapters: 0,
@@ -142,26 +146,26 @@ class MegaNovelEngine {
       dailyWords: {},
       startDate: null,
       estimatedEndDate: null
-    })
+    }
     
     // 生成状态
-    this.generationStatus = reactive({
+    this.generationStatus = {
       isGenerating: false,
       currentChapter: null,
       progress: 0,
       message: ''
-    })
+    }
     
     // API 配置
-    this.apiConfig = reactive({
+    this.apiConfig = {
       model: 'gpt-4o',
       maxTokens: 4096,
       temperature: 0.7,
       contextWindow: TOKEN_LIMITS.GPT_4O
-    })
+    }
     
     // 检查点（用于断点续传）
-    this.checkpoint = ref(null)
+    this.checkpoint = null
   }
   
   // ==================== 项目管理 ====================
@@ -184,7 +188,7 @@ class MegaNovelEngine {
       status: 'draft'
     }
     
-    this.currentProject.value = project
+    this.currentProject = project
     this.progress.targetWords = project.targetWords
     this.progress.startDate = project.createdAt
     
@@ -204,17 +208,17 @@ class MegaNovelEngine {
       const saved = localStorage.getItem(`megaNovel_${projectId}`)
       if (saved) {
         const data = JSON.parse(saved)
-        this.currentProject.value = data.project
-        this.volumes.value = data.volumes || []
-        this.chapters.value = data.chapters || []
-        this.characters.value = data.characters || []
-        this.worldSettings.value = data.worldSettings || []
-        this.summaryChain.value = data.summaryChain || []
-        this.characterStates.value = data.characterStates || {}
+        this.currentProject = data.project
+        this.volumes = data.volumes || []
+        this.chapters = data.chapters || []
+        this.characters = data.characters || []
+        this.worldSettings = data.worldSettings || []
+        this.summaryChain = data.summaryChain || []
+        this.characterStates = data.characterStates || {}
         this.progress = { ...this.progress, ...data.progress }
-        this.checkpoint.value = data.checkpoint || null
+        this.checkpoint = data.checkpoint || null
         
-        return this.currentProject.value
+        return this.currentProject
       }
     } catch (error) {
       console.error('加载项目失败:', error)
@@ -226,21 +230,21 @@ class MegaNovelEngine {
    * 保存项目到本地存储
    */
   saveToLocalStorage() {
-    if (!this.currentProject.value) return
+    if (!this.currentProject) return
     
     const data = {
-      project: this.currentProject.value,
-      volumes: this.volumes.value,
-      chapters: this.chapters.value,
-      characters: this.characters.value,
-      worldSettings: this.worldSettings.value,
-      summaryChain: this.summaryChain.value,
-      characterStates: this.characterStates.value,
+      project: this.currentProject,
+      volumes: this.volumes,
+      chapters: this.chapters,
+      characters: this.characters,
+      worldSettings: this.worldSettings,
+      summaryChain: this.summaryChain,
+      characterStates: this.characterStates,
       progress: this.progress,
-      checkpoint: this.checkpoint.value
+      checkpoint: this.checkpoint
     }
     
-    localStorage.setItem(`megaNovel_${this.currentProject.value.id}`, JSON.stringify(data))
+    localStorage.setItem(`megaNovel_${this.currentProject.id}`, JSON.stringify(data))
   }
   
   // ==================== 卷管理 ====================
@@ -253,13 +257,13 @@ class MegaNovelEngine {
   addVolume(volumeInfo) {
     const volume = {
       id: generateId(),
-      title: volumeInfo.title || `第${this.volumes.value.length + 1}卷`,
+      title: volumeInfo.title || `第${this.volumes.length + 1}卷`,
       description: volumeInfo.description || '',
-      order: this.volumes.value.length,
+      order: this.volumes.length,
       createdAt: new Date().toISOString()
     }
     
-    this.volumes.value.push(volume)
+    this.volumes.push(volume)
     this.saveToLocalStorage()
     
     return volume
@@ -271,9 +275,9 @@ class MegaNovelEngine {
    * @param {Object} updates - 更新内容
    */
   updateVolume(volumeId, updates) {
-    const index = this.volumes.value.findIndex(v => v.id === volumeId)
+    const index = this.volumes.findIndex(v => v.id === volumeId)
     if (index !== -1) {
-      this.volumes.value[index] = { ...this.volumes.value[index], ...updates }
+      this.volumes[index] = { ...this.volumes[index], ...updates }
       this.saveToLocalStorage()
     }
   }
@@ -283,9 +287,9 @@ class MegaNovelEngine {
    * @param {string} volumeId - 卷 ID
    */
   deleteVolume(volumeId) {
-    this.volumes.value = this.volumes.value.filter(v => v.id !== volumeId)
+    this.volumes = this.volumes.filter(v => v.id !== volumeId)
     // 同时删除该卷下的所有章节
-    this.chapters.value = this.chapters.value.filter(c => c.volumeId !== volumeId)
+    this.chapters = this.chapters.filter(c => c.volumeId !== volumeId)
     this.saveToLocalStorage()
   }
   
@@ -297,13 +301,13 @@ class MegaNovelEngine {
    * @returns {Object} 创建的章节
    */
   addChapter(chapterInfo) {
-    const volumeId = chapterInfo.volumeId || (this.volumes.value[0]?.id || null)
-    const volumeChapters = this.chapters.value.filter(c => c.volumeId === volumeId)
+    const volumeId = chapterInfo.volumeId || (this.volumes[0]?.id || null)
+    const volumeChapters = this.chapters.filter(c => c.volumeId === volumeId)
     
     const chapter = {
       id: generateId(),
       volumeId: volumeId,
-      title: chapterInfo.title || `第${this.chapters.value.length + 1}章`,
+      title: chapterInfo.title || `第${this.chapters.length + 1}章`,
       outline: chapterInfo.outline || '',
       content: '',
       summary: '',
@@ -321,8 +325,8 @@ class MegaNovelEngine {
       }
     }
     
-    this.chapters.value.push(chapter)
-    this.progress.totalChapters = this.chapters.value.length
+    this.chapters.push(chapter)
+    this.progress.totalChapters = this.chapters.length
     this.saveToLocalStorage()
     
     return chapter
@@ -339,7 +343,7 @@ class MegaNovelEngine {
     chaptersInfo.forEach((info, index) => {
       const chapter = this.addChapter({
         ...info,
-        order: this.chapters.value.length
+        order: this.chapters.length
       })
       addedChapters.push(chapter)
     })
@@ -353,10 +357,10 @@ class MegaNovelEngine {
    * @param {Object} updates - 更新内容
    */
   updateChapter(chapterId, updates) {
-    const index = this.chapters.value.findIndex(c => c.id === chapterId)
+    const index = this.chapters.findIndex(c => c.id === chapterId)
     if (index !== -1) {
-      const chapter = this.chapters.value[index]
-      this.chapters.value[index] = {
+      const chapter = this.chapters[index]
+      this.chapters[index] = {
         ...chapter,
         ...updates,
         updatedAt: new Date().toISOString()
@@ -376,8 +380,8 @@ class MegaNovelEngine {
    * @param {string} chapterId - 章节 ID
    */
   deleteChapter(chapterId) {
-    this.chapters.value = this.chapters.value.filter(c => c.id !== chapterId)
-    this.progress.totalChapters = this.chapters.value.length
+    this.chapters = this.chapters.filter(c => c.id !== chapterId)
+    this.progress.totalChapters = this.chapters.length
     this.updateWordCount()
     this.saveToLocalStorage()
   }
@@ -389,14 +393,14 @@ class MegaNovelEngine {
   getChaptersByVolume() {
     const result = {}
     
-    this.volumes.value.forEach(volume => {
-      result[volume.id] = this.chapters.value
+    this.volumes.forEach(volume => {
+      result[volume.id] = this.chapters
         .filter(c => c.volumeId === volume.id)
         .sort((a, b) => a.order - b.order)
     })
     
     // 未分组的章节
-    const ungrouped = this.chapters.value.filter(c => !c.volumeId)
+    const ungrouped = this.chapters.filter(c => !c.volumeId)
     if (ungrouped.length > 0) {
       result['ungrouped'] = ungrouped.sort((a, b) => a.order - b.order)
     }
@@ -423,8 +427,8 @@ class MegaNovelEngine {
       createdAt: new Date().toISOString()
     }
     
-    this.characters.value.push(character)
-    this.characterStates.value[character.id] = {
+    this.characters.push(character)
+    this.characterStates[character.id] = {
       location: '',
       status: '',
       mood: '',
@@ -443,12 +447,12 @@ class MegaNovelEngine {
    * @param {Object} state - 状态更新
    */
   updateCharacterState(characterId, chapterId, state) {
-    if (!this.characterStates.value[characterId]) {
-      this.characterStates.value[characterId] = {}
+    if (!this.characterStates[characterId]) {
+      this.characterStates[characterId] = {}
     }
     
-    this.characterStates.value[characterId] = {
-      ...this.characterStates.value[characterId],
+    this.characterStates[characterId] = {
+      ...this.characterStates[characterId],
       ...state,
       lastAppearance: chapterId,
       updatedAt: new Date().toISOString()
@@ -474,7 +478,7 @@ class MegaNovelEngine {
       createdAt: new Date().toISOString()
     }
     
-    this.worldSettings.value.push(setting)
+    this.worldSettings.push(setting)
     this.saveToLocalStorage()
     
     return setting
@@ -488,7 +492,7 @@ class MegaNovelEngine {
    * @returns {Object} 上下文对象
    */
   buildChapterContext(chapterId) {
-    const chapter = this.chapters.value.find(c => c.id === chapterId)
+    const chapter = this.chapters.find(c => c.id === chapterId)
     if (!chapter) return null
     
     // 获取前几章的摘要
@@ -523,11 +527,11 @@ class MegaNovelEngine {
    * @returns {Array} 摘要数组
    */
   getPreviousSummaries(chapterId, count = 3) {
-    const chapterIndex = this.chapters.value.findIndex(c => c.id === chapterId)
+    const chapterIndex = this.chapters.findIndex(c => c.id === chapterId)
     if (chapterIndex <= 0) return []
     
     const startIndex = Math.max(0, chapterIndex - count)
-    const previousChapters = this.chapters.value.slice(startIndex, chapterIndex)
+    const previousChapters = this.chapters.slice(startIndex, chapterIndex)
     
     return previousChapters
       .filter(c => c.summary)
@@ -546,7 +550,7 @@ class MegaNovelEngine {
   getRelevantCharacters(text) {
     if (!text) return []
     
-    return this.characters.value.filter(char => {
+    return this.characters.filter(char => {
       // 检查角色名是否出现在文本中
       return text.includes(char.name)
     }).map(char => ({
@@ -554,7 +558,7 @@ class MegaNovelEngine {
       name: char.name,
       description: char.description,
       traits: char.traits,
-      currentState: this.characterStates.value[char.id] || {}
+      currentState: this.characterStates[char.id] || {}
     }))
   }
   
@@ -567,7 +571,7 @@ class MegaNovelEngine {
     const contexts = []
     
     // 添加所有世界观设定
-    this.worldSettings.value.forEach(setting => {
+    this.worldSettings.forEach(setting => {
       contexts.push(`【${setting.title}】\n${setting.content}`)
     })
     
@@ -647,7 +651,7 @@ class MegaNovelEngine {
    * @returns {Promise<string>} 生成的摘要
    */
   async generateChapterSummary(chapterId) {
-    const chapter = this.chapters.value.find(c => c.id === chapterId)
+    const chapter = this.chapters.find(c => c.id === chapterId)
     if (!chapter || !chapter.content) {
       throw new Error('章节内容为空，无法生成摘要')
     }
@@ -674,13 +678,13 @@ ${chapter.content.substring(0, 3000)}
       this.updateChapter(chapterId, { summary })
       
       // 更新摘要链
-      const summaryIndex = this.summaryChain.value.findIndex(s => s.chapterId === chapterId)
+      const summaryIndex = this.summaryChain.findIndex(s => s.chapterId === chapterId)
       const summaryEntry = { chapterId, title: chapter.title, summary }
       
       if (summaryIndex !== -1) {
-        this.summaryChain.value[summaryIndex] = summaryEntry
+        this.summaryChain[summaryIndex] = summaryEntry
       } else {
-        this.summaryChain.value.push(summaryEntry)
+        this.summaryChain.push(summaryEntry)
       }
       
       this.saveToLocalStorage()
@@ -701,18 +705,18 @@ ${chapter.content.substring(0, 3000)}
    * @returns {Promise<Array>} 生成的章节大纲数组
    */
   async generateVolumeOutline(volumeId, options = {}) {
-    const volume = this.volumes.value.find(v => v.id === volumeId)
+    const volume = this.volumes.find(v => v.id === volumeId)
     if (!volume) {
       throw new Error('未找到指定的卷')
     }
     
     const prompt = `请为以下小说卷生成详细的章节大纲：
 
-小说标题：${this.currentProject.value?.title || '未命名'}
+小说标题：${this.currentProject?.title || '未命名'}
 卷标题：${volume.title}
 卷简介：${volume.description || '暂无简介'}
-小说类型：${this.currentProject.value?.genre || '通用'}
-小说主题：${this.currentProject.value?.theme || '通用'}
+小说类型：${this.currentProject?.genre || '通用'}
+小说主题：${this.currentProject?.theme || '通用'}
 
 要求：
 1. 生成 ${options.chapterCount || 10} 个章节的大纲
@@ -775,7 +779,7 @@ ${chapter.content.substring(0, 3000)}
     }
     
     this.generationStatus.isGenerating = true
-    this.generationQueue.value = chapterIds.map(id => ({
+    this.generationQueue = chapterIds.map(id => ({
       chapterId: id,
       status: 'pending'
     }))
@@ -793,7 +797,7 @@ ${chapter.content.substring(0, 3000)}
         this.generationStatus.message = `正在生成第 ${i + 1}/${chapterIds.length} 章`
         
         // 更新队列状态
-        const queueItem = this.generationQueue.value.find(q => q.chapterId === chapterId)
+        const queueItem = this.generationQueue.find(q => q.chapterId === chapterId)
         if (queueItem) {
           queueItem.status = 'generating'
         }
@@ -817,7 +821,7 @@ ${chapter.content.substring(0, 3000)}
             await this.rewriteChapter(chapterId, qualityResult.issues)
           } else if (qualityResult.result === QUALITY_RESULT.WARNING) {
             // 加入审核队列
-            this.reviewQueue.value.push({
+            this.reviewQueue.push({
               chapterId,
               issues: qualityResult.issues,
               createdAt: new Date().toISOString()
@@ -860,7 +864,7 @@ ${chapter.content.substring(0, 3000)}
    * @returns {Promise<string>} 生成的内容
    */
   async generateChapterContent(chapterId, context) {
-    const chapter = this.chapters.value.find(c => c.id === chapterId)
+    const chapter = this.chapters.find(c => c.id === chapterId)
     if (!chapter) {
       throw new Error('未找到指定的章节')
     }
@@ -904,10 +908,10 @@ ${chapter.content.substring(0, 3000)}
     let prompt = `你是一位专业的小说作家，请根据以下信息创作章节内容。
 
 ## 小说信息
-- 标题：${this.currentProject.value?.title || '未命名'}
-- 类型：${this.currentProject.value?.genre || '通用'}
-- 主题：${this.currentProject.value?.theme || '通用'}
-- 简介：${this.currentProject.value?.intro || '暂无简介'}
+- 标题：${this.currentProject?.title || '未命名'}
+- 类型：${this.currentProject?.genre || '通用'}
+- 主题：${this.currentProject?.theme || '通用'}
+- 简介：${this.currentProject?.intro || '暂无简介'}
 
 ## 当前章节
 - 标题：${chapter.title}
@@ -963,9 +967,9 @@ ${chapter.content.substring(0, 3000)}
    * 保存检查点
    */
   saveCheckpoint() {
-    this.checkpoint.value = {
+    this.checkpoint = {
       timestamp: new Date().toISOString(),
-      generationQueue: [...this.generationQueue.value],
+      generationQueue: [...this.generationQueue],
       generationStatus: { ...this.generationStatus }
     }
     this.saveToLocalStorage()
@@ -976,12 +980,12 @@ ${chapter.content.substring(0, 3000)}
    * @returns {boolean} 是否成功恢复
    */
   restoreFromCheckpoint() {
-    if (!this.checkpoint.value) {
+    if (!this.checkpoint) {
       return false
     }
     
     // 找出未完成的章节
-    const pendingChapters = this.generationQueue.value
+    const pendingChapters = this.generationQueue
       .filter(q => q.status === 'pending' || q.status === 'generating')
       .map(q => q.chapterId)
     
@@ -1002,7 +1006,7 @@ ${chapter.content.substring(0, 3000)}
    * @returns {Promise<Object>} 检查结果
    */
   async checkChapterQuality(chapterId) {
-    const chapter = this.chapters.value.find(c => c.id === chapterId)
+    const chapter = this.chapters.find(c => c.id === chapterId)
     if (!chapter || !chapter.content) {
       return {
         result: QUALITY_RESULT.FAIL,
@@ -1034,7 +1038,7 @@ ${chapter.content.substring(0, 3000)}
     }
     
     // AI 质量检查
-    if (this.currentProject.value) {
+    if (this.currentProject) {
       try {
         const aiCheckResult = await this.aiQualityCheck(chapter)
         if (aiCheckResult.issues.length > 0) {
@@ -1113,7 +1117,7 @@ ${chapter.content.substring(0, 2000)}
    * @returns {Promise<string>} 重写后的内容
    */
   async rewriteChapter(chapterId, issues) {
-    const chapter = this.chapters.value.find(c => c.id === chapterId)
+    const chapter = this.chapters.find(c => c.id === chapterId)
     if (!chapter) {
       throw new Error('未找到指定的章节')
     }
@@ -1158,7 +1162,7 @@ ${issues.map(i => `- ${i.message}`).join('\n')}
     let totalWords = 0
     let completedChapters = 0
     
-    this.chapters.value.forEach(chapter => {
+    this.chapters.forEach(chapter => {
       if (chapter.content) {
         totalWords += chapter.wordCount || chapter.content.replace(/\s/g, '').length
       }
@@ -1272,12 +1276,12 @@ ${issues.map(i => `- ${i.message}`).join('\n')}
    */
   exportProject() {
     const data = {
-      project: this.currentProject.value,
-      volumes: this.volumes.value,
-      chapters: this.chapters.value,
-      characters: this.characters.value,
-      worldSettings: this.worldSettings.value,
-      summaryChain: this.summaryChain.value,
+      project: this.currentProject,
+      volumes: this.volumes,
+      chapters: this.chapters,
+      characters: this.characters,
+      worldSettings: this.worldSettings,
+      summaryChain: this.summaryChain,
       progress: this.progress,
       exportedAt: new Date().toISOString()
     }
@@ -1290,14 +1294,14 @@ ${issues.map(i => `- ${i.message}`).join('\n')}
    * @returns {string} 小说文本
    */
   exportAsText() {
-    let text = `${this.currentProject.value?.title || '未命名小说'}\n\n`
+    let text = `${this.currentProject?.title || '未命名小说'}\n\n`
     
-    this.volumes.value.forEach(volume => {
+    this.volumes.forEach(volume => {
       text += `\n\n${'='.repeat(40)}\n`
       text += `${volume.title}\n`
       text += `${'='.repeat(40)}\n\n`
       
-      const volumeChapters = this.chapters.value
+      const volumeChapters = this.chapters
         .filter(c => c.volumeId === volume.id)
         .sort((a, b) => a.order - b.order)
       
@@ -1319,12 +1323,12 @@ ${issues.map(i => `- ${i.message}`).join('\n')}
     try {
       const data = JSON.parse(jsonStr)
       
-      this.currentProject.value = data.project
-      this.volumes.value = data.volumes || []
-      this.chapters.value = data.chapters || []
-      this.characters.value = data.characters || []
-      this.worldSettings.value = data.worldSettings || []
-      this.summaryChain.value = data.summaryChain || []
+      this.currentProject = data.project
+      this.volumes = data.volumes || []
+      this.chapters = data.chapters || []
+      this.characters = data.characters || []
+      this.worldSettings = data.worldSettings || []
+      this.summaryChain = data.summaryChain || []
       
       if (data.progress) {
         Object.assign(this.progress, data.progress)

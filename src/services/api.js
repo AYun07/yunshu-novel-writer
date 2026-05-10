@@ -4,6 +4,29 @@ import { getStyleById } from '../config/masterStyles.js'
 import { getTechniqueById } from '../config/literaryTechniques.js'
 import { generateRefinementPrompt } from '../config/refinementSystem.js'
 import { getGenreById } from '../config/genreTemplates.js'
+import multiModelProvider from './multiModelProvider.js'
+
+/**
+ * 获取多模型提供商管理器（ProviderManager）
+ *
+ * multiModelProvider.js 是推荐的 API 调用方式，支持：
+ * - 多提供商统一管理（OpenAI、DeepSeek、Claude、Gemini、ChatGLM）
+ * - API 预设系统（不同任务使用不同模型配置）
+ * - 模型自动发现
+ * - 统一错误处理和重试机制
+ * - 流式响应统一接口
+ *
+ * 使用示例：
+ *   import { getProviderManager } from '@/services/api.js'
+ *   const manager = getProviderManager()
+ *   await manager.setActiveProvider('deepseek', { apiKey: 'xxx' })
+ *   const result = await manager.chat(messages)
+ *
+ * @returns {import('./multiModelProvider.js').default.manager} ProviderManager 实例
+ */
+export function getProviderManager() {
+  return multiModelProvider.manager
+}
 
 class APIService {
   constructor() {
@@ -14,7 +37,8 @@ class APIService {
       maxTokens: 4096,
       temperature: 0.7
     }
-    this.loadUserConfig()
+    // 注意：配置的加载和持久化由 store 层（novel.js）统一负责
+    // 不在此处调用 loadUserConfig()，避免与 store 初始化竞争
   }
   
   loadUserConfig() {
@@ -34,12 +58,9 @@ class APIService {
   }
 
   updateConfig(newConfig) {
+    // 注意：配置的持久化由 store 层（novel.js）统一负责
+    // 此方法仅更新内存中的配置，不直接操作 localStorage
     this.config = { ...this.config, ...newConfig }
-    try {
-      localStorage.setItem('yunshu_api_config', JSON.stringify(this.config))
-    } catch (error) {
-      console.error('保存API配置失败:', error)
-    }
   }
 
   buildURL(endpoint) {

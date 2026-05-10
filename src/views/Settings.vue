@@ -259,6 +259,7 @@ import { ref, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download, Upload, Document, Setting, Delete, ChatLineSquare, Collection } from '@element-plus/icons-vue'
 import ApiConfig from '@/components/ApiConfig.vue'
+import { STORAGE_KEYS } from '@/utils/constants.js'
 
 // 响应式数据
 const activeTab = ref('api')
@@ -319,8 +320,8 @@ const exportAllData = () => {
     novelGenres: JSON.parse(localStorage.getItem('novelGenres') || '[]'),
     writingGoals: JSON.parse(localStorage.getItem('writingGoals') || '[]'),
     settings: {
-      apiConfig: JSON.parse(localStorage.getItem('api-config') || '{}'),
-      tokenUsage: JSON.parse(localStorage.getItem('token-usage') || '{}')
+      apiConfig: JSON.parse(localStorage.getItem(STORAGE_KEYS.API_CONFIG) || '{}'),
+      tokenUsage: JSON.parse(localStorage.getItem(STORAGE_KEYS.TOKEN_USAGE) || '{}')
     },
     exportTime: new Date().toISOString(),
     version: 'v0.7.0'
@@ -393,8 +394,8 @@ const exportGenres = () => {
 
 const exportSettings = () => {
   const settings = {
-    apiConfig: JSON.parse(localStorage.getItem('api-config') || '{}'),
-    tokenUsage: JSON.parse(localStorage.getItem('token-usage') || '{}'),
+    apiConfig: JSON.parse(localStorage.getItem(STORAGE_KEYS.API_CONFIG) || '{}'),
+    tokenUsage: JSON.parse(localStorage.getItem(STORAGE_KEYS.TOKEN_USAGE) || '{}'),
     exportTime: new Date().toISOString(),
     type: 'settings'
   }
@@ -473,11 +474,11 @@ const beforeImport = (file) => {
         
         if (importOptions.value.includes('settings') && data.settings) {
           if (data.settings.apiConfig) {
-            localStorage.setItem('api-config', JSON.stringify(data.settings.apiConfig))
+            localStorage.setItem(STORAGE_KEYS.API_CONFIG, JSON.stringify(data.settings.apiConfig))
             importCount++
           }
           if (data.settings.tokenUsage) {
-            localStorage.setItem('token-usage', JSON.stringify(data.settings.tokenUsage))
+            localStorage.setItem(STORAGE_KEYS.TOKEN_USAGE, JSON.stringify(data.settings.tokenUsage))
             importCount++
           }
         }
@@ -544,7 +545,7 @@ const clearSettings = () => {
     }
   ).then(() => {
     // 清除API配置等设置
-    const settingsKeys = ['api-config', 'token-usage']
+    const settingsKeys = [STORAGE_KEYS.API_CONFIG, STORAGE_KEYS.TOKEN_USAGE]
     settingsKeys.forEach(key => localStorage.removeItem(key))
     
     ElMessage.success('系统设置已重置')

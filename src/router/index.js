@@ -1,94 +1,51 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+
+// 布局组件（立即加载）
 import Dashboard from '../views/Dashboard.vue'
-import HomePage from '../views/HomePage.vue'
-import PromptsLibrary from '../views/PromptsLibrary.vue'
-import NovelManagement from '../views/NovelManagement.vue'
-import WritingGoals from '../views/WritingGoals.vue'
-import TokenBilling from '../views/TokenBilling.vue'
-import Settings from '../views/Settings.vue'
-import ChapterManagement from '../views/ChapterManagement.vue'
-import Writer from '../views/Writer.vue'
-import GenreManagement from '../views/GenreManagement.vue'
-import ToolsLibrary from '../views/ToolsLibrary.vue'
-import ShortStory from '../views/ShortStory.vue'
-import BookAnalysis from '../views/BookAnalysis.vue'
-import MasterCreation from '../views/MasterCreation.vue'
-import StyleImitation from '../views/StyleImitation.vue'
-import NovelWorkshop from '../views/NovelWorkshop.vue'
+
+// 所有页面组件使用懒加载
+const HomePage = () => import('../views/HomePage.vue')
+const PromptsLibrary = () => import('../views/PromptsLibrary.vue')
+const NovelManagement = () => import('../views/NovelManagement.vue')
+const WritingGoals = () => import('../views/WritingGoals.vue')
+const TokenBilling = () => import('../views/TokenBilling.vue')
+const Settings = () => import('../views/Settings.vue')
+const ChapterManagement = () => import('../views/ChapterManagement.vue')
+const Writer = () => import('../views/Writer.vue')
+const GenreManagement = () => import('../views/GenreManagement.vue')
+const ToolsLibrary = () => import('../views/ToolsLibrary.vue')
+const ShortStory = () => import('../views/ShortStory.vue')
+const BookAnalysis = () => import('../views/BookAnalysis.vue')
+const MasterCreation = () => import('../views/MasterCreation.vue')
+const StyleImitation = () => import('../views/StyleImitation.vue')
+const NovelWorkshop = () => import('../views/NovelWorkshop.vue')
 
 // v2.0 新增页面
-import Foreshadowing from '../views/Foreshadowing.vue'
-import NarrativeStructure from '../views/NarrativeStructure.vue'
-import TextAnalysis from '../views/TextAnalysis.vue'
-import FocusMode from '../views/FocusMode.vue'
-import Gamification from '../views/Gamification.vue'
-import IdeaBoard from '../views/IdeaBoard.vue'
-import ChapterGraph from '../views/ChapterGraph.vue'
-import ExportCenter from '../views/ExportCenter.vue'
-import PluginManager from '../views/PluginManager.vue'
-import Collaboration from '../views/Collaboration.vue'
+const Foreshadowing = () => import('../views/Foreshadowing.vue')
+const NarrativeStructure = () => import('../views/NarrativeStructure.vue')
+const TextAnalysis = () => import('../views/TextAnalysis.vue')
+const FocusMode = () => import('../views/FocusMode.vue')
+const Gamification = () => import('../views/Gamification.vue')
+const IdeaBoard = () => import('../views/IdeaBoard.vue')
+const ChapterGraph = () => import('../views/ChapterGraph.vue')
+const ExportCenter = () => import('../views/ExportCenter.vue')
+const PluginManager = () => import('../views/PluginManager.vue')
+const Collaboration = () => import('../views/Collaboration.vue')
 
 // v2.2 高级可视化模块
-import IndexCards from '../views/IndexCards.vue'
-import MultiViewEditor from '../views/MultiViewEditor.vue'
+const IndexCards = () => import('../views/IndexCards.vue')
+const MultiViewEditor = () => import('../views/MultiViewEditor.vue')
 
 // v2.2 长篇小说引擎模块
-import MegaNovelManager from '../views/MegaNovelManager.vue'
+const MegaNovelManager = () => import('../views/MegaNovelManager.vue')
 
-// 文学工坊页面
-const LiteraryWorkshop = {
-  template: `
-    <div class="page-container">
-      <el-card>
-        <template #header>
-          <div class="card-header">
-            <span>文学工坊</span>
-            <el-button type="primary" size="small">开始创作</el-button>
-          </div>
-        </template>
-        <el-empty description="文学工坊功能开发中..." />
-      </el-card>
-    </div>
-  `
-}
+// 文学工坊、协作中心、审阅模式 - 使用实际 .vue 文件
+const LiteraryWorkshop = () => import('../views/LiteraryWorkshop.vue')
+const CollaborationHub = () => import('../views/CollaborationHub.vue')
+const ReviewMode = () => import('../views/ReviewMode.vue')
 
-// 协作中心页面
-const CollaborationHub = {
-  template: `
-    <div class="page-container">
-      <el-card>
-        <template #header>
-          <div class="card-header">
-            <span>协作中心</span>
-            <el-button type="primary" size="small">邀请协作</el-button>
-          </div>
-        </template>
-        <el-empty description="协作中心功能开发中..." />
-      </el-card>
-    </div>
-  `
-}
-
-// 审阅模式页面
-const ReviewMode = {
-  template: `
-    <div class="page-container">
-      <el-card>
-        <template #header>
-          <div class="card-header">
-            <span>审阅模式</span>
-            <el-button-group>
-              <el-button size="small">原始版本</el-button>
-              <el-button size="small">最终版本</el-button>
-              <el-button size="small">标记模式</el-button>
-            </el-button-group>
-          </div>
-        </template>
-        <el-empty description="审阅模式功能开发中..." />
-      </el-card>
-    </div>
-  `
-}
+// 404 页面
+const NotFound = () => import('../views/Dashboard.vue')
 
 const routes = [
   {
@@ -187,7 +144,7 @@ const routes = [
         name: 'NarrativeStructure',
         component: NarrativeStructure
       },
-      // v2.1 新增：文学工坊
+      // 文学工坊 - 指向实际 .vue 文件
       {
         path: 'literary',
         name: 'LiteraryWorkshop',
@@ -225,13 +182,13 @@ const routes = [
         name: 'Collaboration',
         component: Collaboration
       },
-      // v2.1 新增：协作中心
+      // 协作中心 - 指向实际 .vue 文件（原 collaboration-hub 改为 collab-team）
       {
-        path: 'collaboration-hub',
+        path: 'collab-team',
         name: 'CollaborationHub',
         component: CollaborationHub
       },
-      // v2.1 新增：审阅模式
+      // 审阅模式 - 指向实际 .vue 文件
       {
         path: 'review',
         name: 'ReviewMode',
@@ -265,6 +222,12 @@ const routes = [
         component: Settings
       }
     ]
+  },
+  // 404 兜底路由
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    redirect: '/'
   }
 ]
 
