@@ -1,762 +1,484 @@
 /**
- * 云书 - 跨平台检测和适配组合式函数
- *
- * 功能说明：
- * - 检测当前平台：web/desktop/mobile
- * - 检测运行环境：electron/pwa/browser
- * - 检测设备特性：touch/keyboard/mouse/pointer
- * - 检测屏幕尺寸：xs/sm/md/lg/xl
- * - 检测方向：portrait/landscape
- * - 提供平台相关的UI适配建议
- *
- * 使用方式：
- * import { usePlatform } from '@/composables/usePlatform';
- *
- * const {
- *   platform,           // 当前平台类型
- *   environment,        // 运行环境
- *   isMobile,           // 是否移动端
- *   isDesktop,          // 是否桌面端
- *   isTablet,           // 是否平板
- *   isElectron,         // 是否Electron环境
- *   isPWA,              // 是否PWA模式
- *   hasTouch,           // 是否支持触摸
- *   hasPointer,         // 是否支持指针设备
- *   orientation,        // 屏幕方向
- *   devicePixelRatio,   // 设备像素比
- *   platformClass,      // 平台CSS类名
- * } = usePlatform();
+ * 云书 - 平台检测与适配 Hook
+ * 
+ * 功能：
+ * - 设备类型检测（手机/平板/桌面）
+ * - 操作系统检测
+ * - 浏览器检测
+ * - Termux环境检测
+ * - 响应式断点
+ * - 触摸设备检测
+ * - 安全区域适配
  */
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-
-// ============================================
-// 平台类型常量
-// ============================================
-
-/** @enum {string} 平台类型 */
-export const PlatformType = {
-  WEB: 'web',
-  DESKTOP: 'desktop',
-  MOBILE: 'mobile',
-  TABLET: 'tablet',
-};
-
-/** @enum {string} 运行环境 */
-export const EnvironmentType = {
-  ELECTRON: 'electron',
-  PWA: 'pwa',
-  BROWSER: 'browser',
-  WEBVIEW: 'webview',
-};
-
-/** @enum {string} 屏幕尺寸断点 */
-export const Breakpoint = {
-  XS: 'xs',   // < 576px
-  SM: 'sm',   // >= 576px
-  MD: 'md',   // >= 768px
-  LG: 'lg',   // >= 992px
-  XL: 'xl',   // >= 1200px
-  XXL: 'xxl', // >= 1400px
-};
-
-/** @enum {string} 屏幕方向 */
-export const Orientation = {
-  PORTRAIT: 'portrait',
-  LANDSCAPE: 'landscape',
-};
-
-/** @enum {number} 断点像素值 */
-export const BreakpointValue = {
-  XS: 0,
-  SM: 576,
-  MD: 768,
-  LG: 992,
-  XL: 1200,
-  XXL: 1400,
-};
-
-// ============================================
-// 平台检测工具函数
-// ============================================
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 /**
- * 检测是否在 Electron 环境中
- * @returns {boolean}
+ * 设备断点配置
  */
-function detectElectron() {
-  if (typeof window === 'undefined') return false;
-
-  // 检查 window.electronAPI 是否存在（由 preload.js 注入）
-  if (window.electronAPI) return true;
-
-  // 检查 user agent
-  const ua = navigator.userAgent.toLowerCase();
-  if (ua.includes('electron')) return true;
-
-  // 检查 process 对象
-  if (typeof process !== 'undefined' && process.versions?.electron) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * 检测是否在 PWA 模式中运行
- * @returns {boolean}
- */
-function detectPWA() {
-  if (typeof window === 'undefined') return false;
-
-  // 检查 display-mode
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
-  const isMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
-
-  // 检查 iOS 独立模式
-  const isIOSStandalone = window.navigator.standalone === true;
-
-  return isStandalone || isFullscreen || isMinimalUi || isIOSStandalone;
-}
-
-/**
- * 检测是否在 WebView 中运行
- * @returns {boolean}
- */
-function detectWebView() {
-  if (typeof window === 'undefined') return false;
-
-  const ua = navigator.userAgent.toLowerCase();
-
-  // 检测各种 WebView
-  const isWebView =
-    /(webview|wv)/i.test(ua) ||
-    /(iphone|ipod|ipad).*applewebkit(?!.*safari)/i.test(ua) ||
-    /android.*version\/[\d.]+.*chrome\/[^\s]+ mobile/i.test(ua) && !/chrome\/[=\s]*([=\w]+)/i.test(ua);
-
-  return isWebView;
-}
-
-/**
- * 检测是否在 Termux 环境中运行
- * Termux 是 Android 上的终端模拟器，部分 Web API 不兼容
- * @returns {boolean}
- */
-function detectTermux() {
-  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
-
-  const ua = navigator.userAgent.toLowerCase();
-  return /termux/i.test(ua);
+const BREAKPOINTS = {
+  xs: 0,      // 小手机
+  sm: 576,    // 大手机
+  md: 768,    // 平板竖屏
+  lg: 1024,   // 平板横屏/小笔记本
+  xl: 1280,   // 桌面
+  '2xl': 1536 // 大屏幕
 }
 
 /**
  * 检测设备类型
- * @returns {Object} 设备信息
  */
-function detectDevice() {
+function detectDeviceType() {
   if (typeof window === 'undefined') {
-    return {
-      isMobile: false,
-      isTablet: false,
-      isDesktop: true,
-      isIOS: false,
-      isAndroid: false,
-      isWindows: false,
-      isMac: false,
-      isLinux: false,
-    };
+    return { type: 'desktop', isMobile: false, isTablet: false, isDesktop: true }
   }
-
-  const ua = navigator.userAgent.toLowerCase();
-
-  // 检测操作系统
-  const isIOS = /iphone|ipad|ipod/.test(ua);
-  const isAndroid = /android/.test(ua);
-  const isWindows = /windows/.test(ua);
-  const isMac = /macintosh|mac os x/.test(ua);
-  const isLinux = /linux/.test(ua) && !isAndroid;
-
-  // 检测设备类型
-  const isIPad = /ipad/.test(ua) || (isMac && navigator.maxTouchPoints > 1);
-  const isIPhone = /iphone/.test(ua);
-  const isIPod = /ipod/.test(ua);
-
-  // 检测平板（包括 iPad 和大屏 Android 设备）
-  const isTablet =
-    isIPad ||
-    (isAndroid && /(tablet|ipad|playbook|silk)|(android(?!.*mobile))/i.test(ua)) ||
-    (window.innerWidth >= 600 && window.innerWidth < 1200 && 'ontouchstart' in window);
-
-  // 检测手机
-  const isMobile =
-    !isTablet &&
-    (isIPhone || isIPod || isAndroid || /mobile/.test(ua));
-
-  // 桌面端
-  const isDesktop = !isMobile && !isTablet;
-
-  return {
-    isMobile,
-    isTablet,
-    isDesktop,
-    isIOS,
-    isAndroid,
-    isWindows,
-    isMac,
-    isLinux,
-    isIPad,
-    isIPhone,
-    isIPod,
-  };
+  
+  const width = window.innerWidth
+  const ua = navigator.userAgent.toLowerCase()
+  
+  // 检测移动设备
+  const isMobileUA = /mobile|android|iphone|ipod|blackberry|iemobile|opera mini/i.test(ua)
+  const isTabletUA = /tablet|ipad|playbook|silk/i.test(ua)
+  
+  // 基于宽度判断
+  const isMobileWidth = width < BREAKPOINTS.md
+  const isTabletWidth = width >= BREAKPOINTS.md && width < BREAKPOINTS.lg
+  
+  // 综合判断
+  let type = 'desktop'
+  let isMobile = false
+  let isTablet = false
+  let isDesktop = true
+  
+  if (isMobileUA || (isMobileWidth && !isTabletUA)) {
+    type = 'mobile'
+    isMobile = true
+    isDesktop = false
+  } else if (isTabletUA || isTabletWidth) {
+    type = 'tablet'
+    isTablet = true
+    isDesktop = false
+  }
+  
+  return { type, isMobile, isTablet, isDesktop }
 }
 
 /**
- * 检测设备特性
- * @returns {Object} 设备特性
+ * 检测操作系统
  */
-function detectCapabilities() {
-  if (typeof window === 'undefined') {
-    return {
-      hasTouch: false,
-      hasPointer: false,
-      hasMouse: true,
-      hasKeyboard: true,
-      hasVibration: false,
-      hasBattery: false,
-      hasNetworkInfo: false,
-      hasDeviceOrientation: false,
-      hasGeolocation: false,
-    };
+function detectOS() {
+  if (typeof navigator === 'undefined') {
+    return { name: 'unknown', version: '' }
   }
+  
+  const ua = navigator.userAgent
+  
+  // iOS
+  if (/iPhone|iPad|iPod/i.test(ua)) {
+    const match = ua.match(/OS (\d+)_?(\d+)?_?(\d+)?/)
+    return {
+      name: 'ios',
+      version: match ? `${match[1]}.${match[2] || 0}.${match[3] || 0}` : '',
+      isIOS: true
+    }
+  }
+  
+  // Android
+  if (/Android/i.test(ua)) {
+    const match = ua.match(/Android (\d+).?(\d+)?.?(\d+)?/)
+    return {
+      name: 'android',
+      version: match ? `${match[1]}.${match[2] || 0}.${match[3] || 0}` : '',
+      isAndroid: true
+    }
+  }
+  
+  // Windows
+  if (/Windows/i.test(ua)) {
+    const match = ua.match(/Windows NT (\d+).?(\d+)?/)
+    return {
+      name: 'windows',
+      version: match ? `${match[1]}.${match[2] || 0}` : '',
+      isWindows: true
+    }
+  }
+  
+  // macOS
+  if (/Mac/i.test(ua)) {
+    const match = ua.match(/Mac OS X (\d+)_?(\d+)?_?(\d+)?/)
+    return {
+      name: 'macos',
+      version: match ? `${match[1]}.${match[2] || 0}.${match[3] || 0}` : '',
+      isMacOS: true
+    }
+  }
+  
+  // Linux
+  if (/Linux/i.test(ua)) {
+    return {
+      name: 'linux',
+      version: '',
+      isLinux: true
+    }
+  }
+  
+  return { name: 'unknown', version: '' }
+}
 
-  // 触摸支持
-  const hasTouch =
+/**
+ * 检测浏览器
+ */
+function detectBrowser() {
+  if (typeof navigator === 'undefined') {
+    return { name: 'unknown', version: '' }
+  }
+  
+  const ua = navigator.userAgent
+  
+  // Edge
+  if (ua.includes('Edg/')) {
+    const match = ua.match(/Edg\/(\d+).?(\d+)?/)
+    return {
+      name: 'edge',
+      version: match ? `${match[1]}.${match[2] || 0}` : '',
+      isEdge: true
+    }
+  }
+  
+  // Chrome
+  if (ua.includes('Chrome/') && !ua.includes('Edg/')) {
+    const match = ua.match(/Chrome\/(\d+).?(\d+)?/)
+    return {
+      name: 'chrome',
+      version: match ? `${match[1]}.${match[2] || 0}` : '',
+      isChrome: true
+    }
+  }
+  
+  // Safari
+  if (ua.includes('Safari/') && !ua.includes('Chrome/')) {
+    const match = ua.match(/Version\/(\d+).?(\d+)?/)
+    return {
+      name: 'safari',
+      version: match ? `${match[1]}.${match[2] || 0}` : '',
+      isSafari: true
+    }
+  }
+  
+  // Firefox
+  if (ua.includes('Firefox/')) {
+    const match = ua.match(/Firefox\/(\d+).?(\d+)?/)
+    return {
+      name: 'firefox',
+      version: match ? `${match[1]}.${match[2] || 0}` : '',
+      isFirefox: true
+    }
+  }
+  
+  return { name: 'unknown', version: '' }
+}
+
+/**
+ * 检测Termux环境
+ */
+function detectTermux() {
+  if (typeof navigator === 'undefined') return false
+  
+  const ua = navigator.userAgent.toLowerCase()
+  
+  // 检查 User Agent
+  if (ua.includes('termux')) return true
+  
+  // 检查 Termux 特有的全局对象
+  if (typeof window !== 'undefined') {
+    if (window.Termux) return true
+    if (window.termux) return true
+  }
+  
+  // 检查 Android WebView 特征
+  if (ua.includes('wv') && ua.includes('android')) {
+    return true
+  }
+  
+  return false
+}
+
+/**
+ * 检测触摸设备
+ */
+function detectTouch() {
+  if (typeof window === 'undefined') return false
+  
+  return (
     'ontouchstart' in window ||
     navigator.maxTouchPoints > 0 ||
-    window.matchMedia('(pointer: coarse)').matches;
-
-  // 指针设备支持
-  const hasPointer =
-    window.matchMedia('(pointer: fine)').matches ||
-    window.matchMedia('(pointer: coarse)').matches;
-
-  // 鼠标支持（精细指针）
-  const hasMouse = window.matchMedia('(pointer: fine)').matches;
-
-  // 键盘支持
-  const hasKeyboard = !hasTouch || window.matchMedia('(hover: hover)').matches;
-
-  // 振动 API
-  const hasVibration = 'vibrate' in navigator;
-
-  // 电池 API
-  const hasBattery = 'getBattery' in navigator;
-
-  // 网络信息 API
-  const hasNetworkInfo = 'connection' in navigator || 'mozConnection' in navigator || 'webkitConnection' in navigator;
-
-  // 设备方向 API
-  const hasDeviceOrientation = 'DeviceOrientationEvent' in window;
-
-  // 地理位置 API
-  const hasGeolocation = 'geolocation' in navigator;
-
-  // File System Access API（Termux 环境不支持）
-  const isTermuxEnv = detectTermux();
-  const hasFileSystemAccess = !isTermuxEnv && 'showOpenFilePicker' in window;
-
-  return {
-    hasTouch,
-    hasPointer,
-    hasMouse,
-    hasKeyboard,
-    hasVibration,
-    hasFileSystemAccess,
-    hasBattery,
-    hasNetworkInfo,
-    hasDeviceOrientation,
-    hasGeolocation,
-    hasFileSystemAccess,
-  };
+    navigator.msMaxTouchPoints > 0
+  )
 }
 
 /**
- * 获取当前屏幕断点
- * @returns {string} 断点名称
+ * 检测 Capacitor 原生环境
  */
-function getCurrentBreakpoint() {
-  if (typeof window === 'undefined') return Breakpoint.LG;
-
-  const width = window.innerWidth;
-
-  if (width >= BreakpointValue.XXL) return Breakpoint.XXL;
-  if (width >= BreakpointValue.XL) return Breakpoint.XL;
-  if (width >= BreakpointValue.LG) return Breakpoint.LG;
-  if (width >= BreakpointValue.MD) return Breakpoint.MD;
-  if (width >= BreakpointValue.SM) return Breakpoint.SM;
-  return Breakpoint.XS;
+function detectNative() {
+  if (typeof window === 'undefined') return false
+  
+  return window.Capacitor?.isNativePlatform?.() || false
 }
 
 /**
- * 获取屏幕方向
- * @returns {string} 方向名称
+ * 获取当前断点
  */
-function getOrientation() {
-  if (typeof window === 'undefined') return Orientation.LANDSCAPE;
-
-  // 优先使用 screen.orientation
-  if (screen.orientation) {
-    return screen.orientation.type.includes('portrait')
-      ? Orientation.PORTRAIT
-      : Orientation.LANDSCAPE;
-  }
-
-  // 降级方案
-  return window.innerWidth > window.innerHeight
-    ? Orientation.LANDSCAPE
-    : Orientation.PORTRAIT;
+function getCurrentBreakpoint(width) {
+  if (width >= BREAKPOINTS['2xl']) return '2xl'
+  if (width >= BREAKPOINTS.xl) return 'xl'
+  if (width >= BREAKPOINTS.lg) return 'lg'
+  if (width >= BREAKPOINTS.md) return 'md'
+  if (width >= BREAKPOINTS.sm) return 'sm'
+  return 'xs'
 }
 
 /**
- * 获取设备像素比
- * @returns {number}
- */
-function getDevicePixelRatio() {
-  if (typeof window === 'undefined') return 1;
-  return window.devicePixelRatio || 1;
-}
-
-/**
- * 获取安全区域信息（刘海屏/圆角屏适配）
- * @returns {Object} 安全区域边距
- */
-function getSafeArea() {
-  if (typeof window === 'undefined') {
-    return { top: 0, right: 0, bottom: 0, left: 0 };
-  }
-
-  // 检查是否支持 CSS env() 变量
-  const safeAreaTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat') || '0', 10);
-  const safeAreaRight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sar') || '0', 10);
-  const safeAreaBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab') || '0', 10);
-  const safeAreaLeft = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sal') || '0', 10);
-
-  return {
-    top: safeAreaTop || 0,
-    right: safeAreaRight || 0,
-    bottom: safeAreaBottom || 0,
-    left: safeAreaLeft || 0,
-  };
-}
-
-// ============================================
-// 主组合式函数
-// ============================================
-
-/**
- * 跨平台检测和适配组合式函数
- * @returns {Object} 平台相关信息和方法
+ * 平台检测 Hook
  */
 export function usePlatform() {
-  // 响应式状态
-  const breakpoint = ref(getCurrentBreakpoint());
-  const orientation = ref(getOrientation());
-  const devicePixelRatio = ref(getDevicePixelRatio());
-
-  // 设备信息（只需计算一次）
-  const deviceInfo = detectDevice();
-  const capabilities = detectCapabilities();
-  const isElectronEnv = detectElectron();
-  const isPWAEnv = detectPWA();
-  const isWebViewEnv = detectWebView();
-  const isTermuxEnv = detectTermux();
-
-  // ============================================
-  // 计算属性
-  // ============================================
-
-  /** 当前平台类型 */
-  const platform = computed(() => {
-    if (deviceInfo.isMobile) return PlatformType.MOBILE;
-    if (deviceInfo.isTablet) return PlatformType.TABLET;
-    if (isElectronEnv) return PlatformType.DESKTOP;
-    return PlatformType.WEB;
-  });
-
-  /** 运行环境 */
-  const environment = computed(() => {
-    if (isElectronEnv) return EnvironmentType.ELECTRON;
-    if (isPWAEnv) return EnvironmentType.PWA;
-    if (isWebViewEnv) return EnvironmentType.WEBVIEW;
-    return EnvironmentType.BROWSER;
-  });
-
-  /** 是否移动端 */
-  const isMobile = computed(() => deviceInfo.isMobile);
-
-  /** 是否平板 */
-  const isTablet = computed(() => deviceInfo.isTablet);
-
-  /** 是否桌面端 */
-  const isDesktop = computed(() => deviceInfo.isDesktop);
-
-  /** 是否 Electron 环境 */
-  const isElectron = computed(() => isElectronEnv);
-
-  /** 是否 PWA 模式 */
-  const isPWA = computed(() => isPWAEnv);
-
-  /** 是否 WebView */
-  const isWebView = computed(() => isWebViewEnv);
-
-  /** 是否 Termux 环境 */
-  const isTermux = computed(() => isTermuxEnv);
-
-  /** 是否支持 File System Access API */
-  const hasFileSystemAccess = computed(() => capabilities.hasFileSystemAccess);
-
-  /** 是否触摸设备 */
-  const hasTouch = computed(() => capabilities.hasTouch);
-
-  /** 是否支持指针设备 */
-  const hasPointer = computed(() => capabilities.hasPointer);
-
-  /** 是否支持鼠标 */
-  const hasMouse = computed(() => capabilities.hasMouse);
-
-  /** 是否支持键盘 */
-  const hasKeyboard = computed(() => capabilities.hasKeyboard);
-
-  /** 是否支持振动 */
-  const hasVibration = computed(() => capabilities.hasVibration);
-
-  /** 是否 iOS 设备 */
-  const isIOS = computed(() => deviceInfo.isIOS);
-
-  /** 是否 Android 设备 */
-  const isAndroid = computed(() => deviceInfo.isAndroid);
-
-  /** 是否 Windows 系统 */
-  const isWindows = computed(() => deviceInfo.isWindows);
-
-  /** 是否 Mac 系统 */
-  const isMac = computed(() => deviceInfo.isMac);
-
-  /** 是否 Linux 系统 */
-  const isLinux = computed(() => deviceInfo.isLinux);
-
-  /** 是否超小屏幕 */
-  const isXS = computed(() => breakpoint.value === Breakpoint.XS);
-
-  /** 是否小屏幕 */
-  const isSM = computed(() => breakpoint.value === Breakpoint.SM);
-
-  /** 是否中等屏幕 */
-  const isMD = computed(() => breakpoint.value === Breakpoint.MD);
-
-  /** 是否大屏幕 */
-  const isLG = computed(() => breakpoint.value === Breakpoint.LG);
-
-  /** 是否超大屏幕 */
-  const isXL = computed(() => breakpoint.value === Breakpoint.XL);
-
-  /** 是否超超大屏幕 */
-  const isXXL = computed(() => breakpoint.value === Breakpoint.XXL);
-
-  /** 是否竖屏 */
-  const isPortrait = computed(() => orientation.value === Orientation.PORTRAIT);
-
-  /** 是否横屏 */
-  const isLandscape = computed(() => orientation.value === Orientation.LANDSCAPE);
-
-  /** 屏幕宽度是否小于指定断点 */
-  const isLessThan = computed(() => (bp) => {
-    const current = BreakpointValue[breakpoint.value.toUpperCase()];
-    const target = BreakpointValue[bp.toUpperCase()];
-    return current < target;
-  });
-
-  /** 屏幕宽度是否大于指定断点 */
-  const isGreaterThan = computed(() => (bp) => {
-    const current = BreakpointValue[breakpoint.value.toUpperCase()];
-    const target = BreakpointValue[bp.toUpperCase()];
-    return current > target;
-  });
-
-  /** 平台 CSS 类名 */
-  const platformClass = computed(() => {
-    const classes = [
-      `platform-${platform.value}`,
-      `env-${environment.value}`,
-      `bp-${breakpoint.value}`,
-      `orientation-${orientation.value}`,
-    ];
-
-    if (isMobile.value) classes.push('is-mobile');
-    if (isTablet.value) classes.push('is-tablet');
-    if (isDesktop.value) classes.push('is-desktop');
-    if (hasTouch.value) classes.push('has-touch');
-    if (hasMouse.value) classes.push('has-mouse');
-    if (isIOS.value) classes.push('is-ios');
-    if (isAndroid.value) classes.push('is-android');
-    if (isTermux.value) classes.push('is-termux');
-
-    return classes.join(' ');
-  });
-
-  /** UI 适配建议 */
-  const uiRecommendations = computed(() => {
-    const recs = {
-      // 导航模式
-      navigationMode: isMobile.value || isTablet.value ? 'bottom' : 'sidebar',
-
-      // 触摸目标大小
-      touchTargetSize: hasTouch.value ? 44 : 32,
-
-      // 字体大小调整
-      fontScale: isMobile.value ? 1 : isTablet.value ? 1.05 : 1,
-
-      // 布局密度
-      layoutDensity: isMobile.value ? 'compact' : isTablet.value ? 'comfortable' : 'cozy',
-
-      // 是否启用手势
-      enableGestures: hasTouch.value,
-
-      // 是否启用悬停效果
-      enableHover: hasMouse.value,
-
-      // 是否启用键盘快捷键提示
-      showKeyboardShortcuts: hasKeyboard.value && !isMobile.value,
-
-      // 内容最大宽度
-      contentMaxWidth: isMobile.value ? '100%' : isTablet.value ? '720px' : '1200px',
-
-      // 侧边栏宽度
-      sidebarWidth: isMobile.value ? 0 : isTablet.value ? 200 : 260,
-
-      // 是否使用原生滚动
-      useNativeScroll: true,
-
-      // 是否启用下拉刷新
-      enablePullToRefresh: isMobile.value && isPWA.value,
-
-      // 是否启用虚拟键盘处理
-      handleVirtualKeyboard: isMobile.value || isTablet.value,
-
-      // Termux 环境适配
-      // Termux 不支持 File System Access API，禁用相关功能
-      enableFileSystemAccess: capabilities.hasFileSystemAccess,
-      // Termux 中禁用不兼容的 Web API（如 wakeLock、bluetooth 等）
-      enableAdvancedWebAPI: !isTermuxEnv,
-    };
-
-    return recs;
-  });
-
-  // ============================================
-  // 方法
-  // ============================================
-
+  // ==================== 响应式状态 ====================
+  
+  const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+  const windowHeight = ref(typeof window !== 'undefined' ? window.innerHeight : 768)
+  const orientation = ref(typeof window !== 'undefined' ? (window.innerWidth > window.innerHeight ? 'landscape' : 'portrait') : 'portrait')
+  
+  // ==================== 设备检测 ====================
+  
+  const deviceType = computed(() => detectDeviceType())
+  const os = computed(() => detectOS())
+  const browser = computed(() => detectBrowser())
+  const isTermux = computed(() => detectTermux())
+  const hasTouch = computed(() => detectTouch())
+  const isNative = computed(() => detectNative())
+  
+  // ==================== 断点 ====================
+  
+  const breakpoint = computed(() => getCurrentBreakpoint(windowWidth.value))
+  
+  const isXs = computed(() => windowWidth.value < BREAKPOINTS.sm)
+  const isSm = computed(() => windowWidth.value >= BREAKPOINTS.sm && windowWidth.value < BREAKPOINTS.md)
+  const isMd = computed(() => windowWidth.value >= BREAKPOINTS.md && windowWidth.value < BREAKPOINTS.lg)
+  const isLg = computed(() => windowWidth.value >= BREAKPOINTS.lg && windowWidth.value < BREAKPOINTS.xl)
+  const isXl = computed(() => windowWidth.value >= BREAKPOINTS.xl && windowWidth.value < BREAKPOINTS['2xl'])
+  const is2xl = computed(() => windowWidth.value >= BREAKPOINTS['2xl'])
+  
+  // ==================== 便捷属性 ====================
+  
+  const isMobile = computed(() => deviceType.value.isMobile)
+  const isTablet = computed(() => deviceType.value.isTablet)
+  const isDesktop = computed(() => deviceType.value.isDesktop)
+  const isIOS = computed(() => os.value.isIOS)
+  const isAndroid = computed(() => os.value.isAndroid)
+  const isLandscape = computed(() => orientation.value === 'landscape')
+  const isPortrait = computed(() => orientation.value === 'portrait')
+  
+  // ==================== 安全区域 ====================
+  
+  const safeAreaTop = ref(0)
+  const safeAreaBottom = ref(0)
+  const safeAreaLeft = ref(0)
+  const safeAreaRight = ref(0)
+  
+  // ==================== 网络状态 ====================
+  
+  const isOnline = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
+  
+  // ==================== 方法 ====================
+  
   /**
-   * 触发设备振动
-   * @param {number|number[]} pattern - 振动模式
+   * 更新窗口尺寸
    */
-  function vibrate(pattern = 50) {
-    if (capabilities.hasVibration) {
-      navigator.vibrate(pattern);
-    }
+  function updateDimensions() {
+    if (typeof window === 'undefined') return
+    
+    windowWidth.value = window.innerWidth
+    windowHeight.value = window.innerHeight
+    orientation.value = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait'
   }
-
+  
   /**
-   * 检查是否支持指定特性
-   * @param {string} feature - 特性名称
-   * @returns {boolean}
+   * 更新安全区域
    */
-  function supports(feature) {
-    const featureMap = {
-      touch: capabilities.hasTouch,
-      mouse: capabilities.hasMouse,
-      keyboard: capabilities.hasKeyboard,
-      vibration: capabilities.hasVibration,
-      battery: capabilities.hasBattery,
-      network: capabilities.hasNetworkInfo,
-      orientation: capabilities.hasDeviceOrientation,
-      geolocation: capabilities.hasGeolocation,
-      fullscreen: document.fullscreenEnabled,
-      clipboard: 'clipboard' in navigator,
-      share: 'share' in navigator,
-      wakeLock: 'wakeLock' in navigator,
-      notifications: 'Notification' in window,
-      serviceWorker: 'serviceWorker' in navigator,
-      storage: 'storage' in navigator,
-      bluetooth: 'bluetooth' in navigator,
-      usb: 'usb' in navigator,
-      serial: 'serial' in navigator,
-      fileSystemAccess: capabilities.hasFileSystemAccess,
-    };
-
-    return featureMap[feature] || false;
+  function updateSafeArea() {
+    if (typeof document === 'undefined') return
+    
+    const computedStyle = getComputedStyle(document.documentElement)
+    
+    safeAreaTop.value = parseInt(computedStyle.getPropertyValue('--safe-area-top') || '0')
+    safeAreaBottom.value = parseInt(computedStyle.getPropertyValue('--safe-area-bottom') || '0')
+    safeAreaLeft.value = parseInt(computedStyle.getPropertyValue('--safe-area-left') || '0')
+    safeAreaRight.value = parseInt(computedStyle.getPropertyValue('--safe-area-right') || '0')
   }
-
+  
   /**
-   * 获取网络状态
-   * @returns {Object|null}
+   * 处理网络状态变化
    */
-  function getNetworkStatus() {
-    if (!capabilities.hasNetworkInfo) return null;
-
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-
-    if (!connection) return null;
-
-    return {
-      effectiveType: connection.effectiveType, // '4g', '3g', '2g', 'slow-2g'
-      downlink: connection.downlink, // Mbps
-      rtt: connection.rtt, // Round-trip time in ms
-      saveData: connection.saveData, // Data saver mode
-      type: connection.type, // 'wifi', 'cellular', etc.
-    };
+  function handleOnline() {
+    isOnline.value = true
   }
-
-  /**
-   * 获取电池状态
-   * @returns {Promise<Object|null>}
-   */
-  async function getBatteryStatus() {
-    if (!capabilities.hasBattery) return null;
-
-    try {
-      const battery = await navigator.getBattery();
-      return {
-        level: battery.level * 100, // 百分比
-        charging: battery.charging,
-        chargingTime: battery.chargingTime,
-        dischargingTime: battery.dischargingTime,
-      };
-    } catch (error) {
-      console.warn('获取电池状态失败:', error);
-      return null;
-    }
+  
+  function handleOffline() {
+    isOnline.value = false
   }
-
-  // ============================================
-  // 事件监听
-  // ============================================
-
-  /**
-   * 处理窗口大小变化
-   */
-  function handleResize() {
-    breakpoint.value = getCurrentBreakpoint();
-    devicePixelRatio.value = getDevicePixelRatio();
-  }
-
-  /**
-   * 处理方向变化
-   */
-  function handleOrientationChange() {
-    orientation.value = getOrientation();
-  }
-
-  // ============================================
-  // 生命周期
-  // ============================================
-
+  
+  // ==================== 生命周期 ====================
+  
   onMounted(() => {
-    if (typeof window !== 'undefined') {
-      try { if (typeof window.addEventListener === 'function') {
-        window.addEventListener('resize', handleResize);
-        window.addEventListener('orientationchange', handleOrientationChange);
-      } } catch(e) {}
-
-      // 监听屏幕方向变化（现代浏览器）
-      if (screen.orientation) {
-        try { if (typeof screen.orientation.addEventListener === 'function') {
-          screen.orientation.addEventListener('change', handleOrientationChange);
-        } } catch(e) {}
-      }
-    }
-  });
-
+    updateDimensions()
+    updateSafeArea()
+    
+    window.addEventListener('resize', updateDimensions)
+    window.addEventListener('orientationchange', updateDimensions)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+  })
+  
   onUnmounted(() => {
-    if (typeof window !== 'undefined') {
-      try { if (typeof window.removeEventListener === 'function') {
-        window.removeEventListener('resize', handleResize);
-        window.removeEventListener('orientationchange', handleOrientationChange);
-      } } catch(e) {}
-
-      if (screen.orientation) {
-        try { if (typeof screen.orientation.removeEventListener === 'function') {
-          screen.orientation.removeEventListener('change', handleOrientationChange);
-        } } catch(e) {}
-      }
-    }
-  });
-
-  // ============================================
-  // 返回值
-  // ============================================
-
+    window.removeEventListener('resize', updateDimensions)
+    window.removeEventListener('orientationchange', updateDimensions)
+    window.removeEventListener('online', handleOnline)
+    window.removeEventListener('offline', handleOffline)
+  })
+  
+  // ==================== 返回 ====================
+  
   return {
-    // 平台信息
-    platform,
-    environment,
-
+    // 窗口尺寸
+    windowWidth,
+    windowHeight,
+    orientation,
+    
     // 设备类型
+    deviceType,
     isMobile,
     isTablet,
     isDesktop,
-
-    // 运行环境
-    isElectron,
-    isPWA,
-    isWebView,
-    isTermux,
-
+    
     // 操作系统
+    os,
     isIOS,
     isAndroid,
-    isWindows,
-    isMac,
-    isLinux,
-
-    // 设备特性
+    
+    // 浏览器
+    browser,
+    
+    // 特殊环境
+    isTermux,
+    isNative,
     hasTouch,
-    hasPointer,
-    hasMouse,
-    hasKeyboard,
-    hasVibration,
-
-    // 屏幕信息
+    
+    // 断点
     breakpoint,
-    orientation,
-    isPortrait,
+    isXs,
+    isSm,
+    isMd,
+    isLg,
+    isXl,
+    is2xl,
+    
+    // 方向
     isLandscape,
-    devicePixelRatio,
-
-    // 断点判断
-    isXS,
-    isSM,
-    isMD,
-    isLG,
-    isXL,
-    isXXL,
-    isLessThan,
-    isGreaterThan,
-
-    // UI 适配
-    platformClass,
-    uiRecommendations,
-
+    isPortrait,
+    
+    // 安全区域
+    safeAreaTop,
+    safeAreaBottom,
+    safeAreaLeft,
+    safeAreaRight,
+    
+    // 网络状态
+    isOnline,
+    
     // 方法
-    vibrate,
-    supports,
-    getNetworkStatus,
-    getBatteryStatus,
-    getSafeArea,
-  };
+    updateDimensions,
+    updateSafeArea,
+  }
 }
 
-// 默认导出
-export default usePlatform;
+/**
+ * 响应式断点 Hook
+ */
+export function useBreakpoint() {
+  const { breakpoint, isXs, isSm, isMd, isLg, isXl, is2xl } = usePlatform()
+  
+  return {
+    breakpoint,
+    isXs,
+    isSm,
+    isMd,
+    isLg,
+    isXl,
+    is2xl,
+    
+    // 便捷方法
+    isMobile: computed(() => isXs.value || isSm.value),
+    isTablet: computed(() => isMd.value),
+    isDesktop: computed(() => isLg.value || isXl.value || is2xl.value),
+  }
+}
+
+/**
+ * 设备方向 Hook
+ */
+export function useOrientation() {
+  const { orientation, isLandscape, isPortrait } = usePlatform()
+  
+  return {
+    orientation,
+    isLandscape,
+    isPortrait,
+  }
+}
+
+/**
+ * 安全区域 Hook
+ */
+export function useSafeArea() {
+  const { safeAreaTop, safeAreaBottom, safeAreaLeft, safeAreaRight } = usePlatform()
+  
+  return {
+    top: safeAreaTop,
+    bottom: safeAreaBottom,
+    left: safeAreaLeft,
+    right: safeAreaRight,
+    
+    // CSS 样式对象
+    style: computed(() => ({
+      paddingTop: `${safeAreaTop.value}px`,
+      paddingBottom: `${safeAreaBottom.value}px`,
+      paddingLeft: `${safeAreaLeft.value}px`,
+      paddingRight: `${safeAreaRight.value}px`,
+    })),
+  }
+}
+
+/**
+ * 触摸设备 Hook
+ */
+export function useTouch() {
+  const { hasTouch } = usePlatform()
+  
+  return {
+    hasTouch,
+    
+    // 触摸事件处理
+    onTouchStart: (callback) => {
+      if (hasTouch.value) {
+        document.addEventListener('touchstart', callback)
+      }
+    },
+    
+    onTouchEnd: (callback) => {
+      if (hasTouch.value) {
+        document.addEventListener('touchend', callback)
+      }
+    },
+  }
+}
+
+export default usePlatform

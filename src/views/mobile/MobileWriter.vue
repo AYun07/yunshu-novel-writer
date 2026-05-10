@@ -1,858 +1,541 @@
 <template>
-  <div class="mobile-writer" :class="{ 'focus-mode': isFocusMode }">
-    <!-- 顶部标题栏 -->
-    <div class="writer-header" v-show="!isFocusMode">
-      <div class="header-left">
-        <el-button type="text" @click="handleBack">
-          <el-icon><ArrowLeft /></el-icon>
-        </el-button>
-        <div class="title-section" @click="showTitleEdit = true">
-          <h1 class="chapter-title">{{ currentChapter?.title || '未命名章节' }}</h1>
-          <p class="project-name">{{ currentProject?.name || '未选择项目' }}</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <el-button
-          type="primary"
-          text
-          :loading="isSaving"
-          @click="saveContent"
-        >
-          <el-icon v-if="!isSaving"><Check /></el-icon>
-          <span>{{ saveStatus }}</span>
-        </el-button>
-        <el-button type="text" @click="showSettings = true">
-          <el-icon><Setting /></el-icon>
-        </el-button>
+  <div class="mobile-writer">
+    <!-- 顶部工具栏 -->
+    <header class="writer-header safe-area-top">
+      <button class="back-btn touch-target" @click="goBack">
+        <span>←</span>
+      </button>
+      <h1 class="writer-title">{{ novelTitle || '新建章节' }}</h1>
+      <button class="save-btn touch-target" @click="saveChapter" :disabled="saving">
+        {{ saving ? '保存中...' : '保存' }}
+      </button>
+    </header>
+    
+    <!-- 章节信息 -->
+    <div class="chapter-info">
+      <input 
+        v-model="chapterTitle"
+        type="text"
+        class="chapter-title-input input-mobile"
+        placeholder="章节标题"
+        @focus="handleInputFocus"
+        @blur="handleInputBlur"
+      />
+      <div class="word-count">
+        <span>{{ wordCount }} 字</span>
+        <span v-if="dailyGoal" class="goal-progress">
+          | 今日 {{ dailyWordCount }}/{{ dailyGoal }}
+        </span>
       </div>
     </div>
-
-    <!-- 专注模式退出按钮 -->
-    <div class="focus-exit" v-show="isFocusMode" @click="toggleFocusMode">
-      <el-icon><Close /></el-icon>
-    </div>
-
-    <!-- 编辑器区域 -->
-    <div class="editor-container">
+    
+    <!-- 写作区域 -->
+    <div class="editor-container" :style="editorStyle">
       <textarea
         ref="editorRef"
         v-model="content"
-        class="writer-editor"
-        placeholder="开始你的创作..."
+        class="editor textarea-mobile"
+        placeholder="开始写作..."
         @input="handleInput"
-        @keydown="handleKeydown"
+        @focus="handleEditorFocus"
+        @blur="handleEditorBlur"
       ></textarea>
-
-      <!-- 自动保存提示 -->
-      <transition name="fade">
-        <div class="autosave-toast" v-if="showAutoSaveToast">
-          <el-icon><CircleCheck /></el-icon>
-          <span>已自动保存</span>
-        </div>
-      </transition>
     </div>
-
+    
     <!-- 底部工具栏 -->
-    <div class="writer-footer" v-show="!isFocusMode">
-      <div class="footer-left">
-        <span class="word-count">
-          <el-icon><Document /></el-icon>
-          {{ wordCount }} 字
-        </span>
-        <span class="char-count">
-          {{ charCount }} 字符
-        </span>
+    <footer class="writer-footer safe-area-bottom" :class="{ 'keyboard-visible': keyboardVisible }">
+      <div class="toolbar">
+        <button class="tool-btn touch-target" @click="insertFormat('bold')" title="加粗">
+          <strong>B</strong>
+        </button>
+        <button class="tool-btn touch-target" @click="insertFormat('italic')" title="斜体">
+          <em>I</em>
+        </button>
+        <button class="tool-btn touch-target" @click="insertFormat('quote')" title="引用">
+          "
+        </button>
+        <button class="tool-btn touch-target" @click="insertFormat('dialog')" title="对话">
+          💬
+        </button>
+        <button class="tool-btn touch-target" @click="showChapterList = true" title="章节">
+          📑
+        </button>
+        <button class="tool-btn touch-target" @click="showAIAssistant = true" title="AI助手">
+          🤖
+        </button>
       </div>
-      <div class="footer-center">
-        <el-button
-          type="primary"
-          text
-          size="small"
-          @click="toggleFocusMode"
-        >
-          <el-icon><FullScreen /></el-icon>
-          专注
-        </el-button>
+      
+      <!-- 快捷操作 -->
+      <div class="quick-actions" v-if="!keyboardVisible">
+        <button class="action-btn" @click="quickSave">
+          快速保存
+        </button>
+        <button class="action-btn" @click="exportChapter">
+          导出
+        </button>
       </div>
-      <div class="footer-right">
-        <el-button type="text" size="small" @click="showChapters = true">
-          <el-icon><List /></el-icon>
-          章节
-        </el-button>
-        <el-button type="text" size="small" @click="showTools = true">
-          <el-icon><Tools /></el-icon>
-          工具
-        </el-button>
-      </div>
-    </div>
-
-    <!-- 专注模式底部信息 -->
-    <div class="focus-footer" v-show="isFocusMode">
-      <span class="focus-word-count">{{ wordCount }} 字</span>
-      <span class="focus-time">{{ formatTime(writingTime) }}</span>
-    </div>
-
-    <!-- 章节列表面板 -->
-    <el-drawer
-      v-model="showChapters"
-      title="章节列表"
-      direction="ltr"
-      size="80%"
-      class="chapters-drawer"
+    </footer>
+    
+    <!-- 章节列表抽屉 -->
+    <van-popup
+      v-model:show="showChapterList"
+      position="right"
+      :style="{ width: '80%', height: '100%' }"
     >
-      <div class="chapters-list">
-        <div
-          v-for="chapter in chapters"
-          :key="chapter.id"
-          class="chapter-item"
-          :class="{ active: currentChapter?.id === chapter.id }"
-          @click="selectChapter(chapter)"
-        >
-          <div class="chapter-info">
-            <span class="chapter-order">第{{ chapter.order }}章</span>
+      <div class="chapter-drawer safe-area-all">
+        <div class="drawer-header">
+          <h3>章节列表</h3>
+          <button class="close-btn touch-target" @click="showChapterList = false">×</button>
+        </div>
+        <div class="chapter-list">
+          <div
+            v-for="(chapter, index) in chapters"
+            :key="chapter.id"
+            class="chapter-item list-item-mobile"
+            :class="{ active: currentChapterId === chapter.id }"
+            @click="selectChapter(chapter)"
+          >
+            <span class="chapter-number">第{{ index + 1 }}章</span>
             <span class="chapter-name">{{ chapter.title }}</span>
+            <span class="chapter-words">{{ chapter.wordCount || 0 }}字</span>
           </div>
-          <el-icon v-if="currentChapter?.id === chapter.id"><Check /></el-icon>
+        </div>
+        <button class="add-chapter-btn btn-mobile" @click="addNewChapter">
+          + 新建章节
+        </button>
+      </div>
+    </van-popup>
+    
+    <!-- AI助手面板 -->
+    <van-popup
+      v-model:show="showAIAssistant"
+      position="bottom"
+      :style="{ height: '60%' }"
+      round
+    >
+      <div class="ai-assistant-panel safe-area-bottom">
+        <div class="panel-header">
+          <h3>AI 写作助手</h3>
+          <button class="close-btn touch-target" @click="showAIAssistant = false">×</button>
+        </div>
+        <div class="ai-options">
+          <button class="ai-option-btn" @click="aiGenerate('continue')">
+            <span class="ai-icon">✨</span>
+            <span>续写</span>
+          </button>
+          <button class="ai-option-btn" @click="aiGenerate('expand')">
+            <span class="ai-icon">📝</span>
+            <span>扩写</span>
+          </button>
+          <button class="ai-option-btn" @click="aiGenerate('polish')">
+            <span class="ai-icon">✏️</span>
+            <span>润色</span>
+          </button>
+          <button class="ai-option-btn" @click="aiGenerate('dialog')">
+            <span class="ai-icon">💬</span>
+            <span>生成对话</span>
+          </button>
+          <button class="ai-option-btn" @click="aiGenerate('describe')">
+            <span class="ai-icon">🎨</span>
+            <span>场景描写</span>
+          </button>
+          <button class="ai-option-btn" @click="aiGenerate('character')">
+            <span class="ai-icon">👤</span>
+            <span>人物刻画</span>
+          </button>
+        </div>
+        <div class="ai-result" v-if="aiResult">
+          <div class="result-content">{{ aiResult }}</div>
+          <div class="result-actions">
+            <button class="action-btn" @click="applyAIResult">应用</button>
+            <button class="action-btn" @click="regenerateAI">重新生成</button>
+          </div>
         </div>
       </div>
-      <template #footer>
-        <el-button type="primary" @click="createNewChapter">
-          <el-icon><Plus /></el-icon>
-          新建章节
-        </el-button>
-      </template>
-    </el-drawer>
-
-    <!-- 工具面板 -->
-    <el-drawer
-      v-model="showTools"
-      title="写作工具"
-      direction="btt"
-      size="60%"
-      class="tools-drawer"
-    >
-      <div class="tools-grid">
-        <div class="tool-item" @click="insertTemplate">
-          <el-icon><DocumentCopy /></el-icon>
-          <span>插入模板</span>
-        </div>
-        <div class="tool-item" @click="generateWithAI">
-          <el-icon><MagicStick /></el-icon>
-          <span>AI续写</span>
-        </div>
-        <div class="tool-item" @click="showHistory = true">
-          <el-icon><Clock /></el-icon>
-          <span>历史版本</span>
-        </div>
-        <div class="tool-item" @click="exportCurrent">
-          <el-icon><Download /></el-icon>
-          <span>导出</span>
-        </div>
+    </van-popup>
+    
+    <!-- 自动保存提示 -->
+    <transition name="fade">
+      <div v-if="autoSaveStatus" class="auto-save-toast">
+        {{ autoSaveStatus }}
       </div>
-    </el-drawer>
-
-    <!-- 设置面板 -->
-    <el-drawer
-      v-model="showSettings"
-      title="编辑器设置"
-      direction="rtl"
-      size="80%"
-      class="settings-drawer"
-    >
-      <div class="settings-list">
-        <div class="setting-item">
-          <span class="setting-label">字体大小</span>
-          <el-slider v-model="fontSize" :min="14" :max="24" :step="1" show-stops />
-          <span class="setting-value">{{ fontSize }}px</span>
-        </div>
-        <div class="setting-item">
-          <span class="setting-label">行间距</span>
-          <el-slider v-model="lineHeight" :min="1.5" :max="2.5" :step="0.1" show-stops />
-          <span class="setting-value">{{ lineHeight }}</span>
-        </div>
-        <div class="setting-item">
-          <span class="setting-label">自动保存</span>
-          <el-switch v-model="autoSaveEnabled" />
-        </div>
-        <div class="setting-item">
-          <span class="setting-label">打字音效</span>
-          <el-switch v-model="typingSoundEnabled" />
-        </div>
-        <div class="setting-item">
-          <span class="setting-label">屏幕常亮</span>
-          <el-switch v-model="keepScreenOn" />
-        </div>
-      </div>
-    </el-drawer>
-
-    <!-- 标题编辑对话框 -->
-    <el-dialog
-      v-model="showTitleEdit"
-      title="编辑章节标题"
-      width="90%"
-      class="mobile-dialog"
-    >
-      <el-input
-        v-model="editingTitle"
-        placeholder="输入章节标题"
-        maxlength="50"
-        show-word-limit
-      />
-      <template #footer>
-        <el-button @click="showTitleEdit = false">取消</el-button>
-        <el-button type="primary" @click="saveTitle">保存</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 新建章节对话框 -->
-    <el-dialog
-      v-model="showNewChapterDialog"
-      title="新建章节"
-      width="90%"
-      class="mobile-dialog"
-    >
-      <el-form label-position="top">
-        <el-form-item label="章节标题">
-          <el-input
-            v-model="newChapterTitle"
-            placeholder="输入章节标题"
-            maxlength="50"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="插入位置">
-          <el-radio-group v-model="newChapterPosition">
-            <el-radio label="after">当前章节之后</el-radio>
-            <el-radio label="end">章节末尾</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showNewChapterDialog = false">取消</el-button>
-        <el-button type="primary" @click="confirmCreateChapter" :loading="creating">
-          创建
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 模板选择对话框 -->
-    <el-dialog
-      v-model="showTemplateDialog"
-      title="选择写作模板"
-      width="90%"
-      class="mobile-dialog"
-    >
-      <div class="template-list">
-        <div
-          v-for="tpl in writingTemplates"
-          :key="tpl.id"
-          class="template-item"
-          @click="applyTemplate(tpl)"
-        >
-          <div class="template-name">{{ tpl.name }}</div>
-          <div class="template-preview">{{ tpl.content.slice(0, 60) }}...</div>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="showTemplateDialog = false">取消</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 安全区域 -->
-    <div class="safe-area-bottom"></div>
+    </transition>
   </div>
 </template>
 
 <script setup>
 /**
- * 移动端写作编辑器组件
- * 提供全屏编辑器、自动保存、专注模式、手势支持等功能
- * 适配移动端虚拟键盘和触摸操作
+ * 移动端写作页面
+ * 
+ * 功能：
+ * - 全屏写作体验
+ * - 章节管理
+ * - AI辅助写作
+ * - 自动保存
+ * - 字数统计
+ * - 格式化工具
  */
 
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  ArrowLeft, Check, Setting, Document, List, Tools,
-  FullScreen, Close, Plus, DocumentCopy, MagicStick,
-  Clock, Download, CircleCheck
-} from '@element-plus/icons-vue'
-import database from '../../services/database.js'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useNovelStore } from '../../stores/novel.js'
+import { mobileAPI } from '../../utils/mobileAPI.js'
+import { termuxAPI } from '../../utils/termuxAPI.js'
 
 // ==================== 路由和状态 ====================
-const router = useRouter()
 const route = useRoute()
+const router = useRouter()
 const novelStore = useNovelStore()
 
 // ==================== 响应式数据 ====================
-const content = ref('')
-const currentProject = ref(null)
-const currentChapter = ref(null)
-const chapters = ref([])
-const isSaving = ref(false)
-const saveStatus = ref('保存')
-const showAutoSaveToast = ref(false)
-const isFocusMode = ref(false)
-const showChapters = ref(false)
-const showTools = ref(false)
-const showSettings = ref(false)
-const showTitleEdit = ref(false)
-const showNewChapterDialog = ref(false)
-const creating = ref(false)
-
-// 编辑器设置
-const fontSize = ref(18)
-const lineHeight = ref(1.8)
-const autoSaveEnabled = ref(true)
-const typingSoundEnabled = ref(false)
-const keepScreenOn = ref(true)
-
-// 章节编辑
-const editingTitle = ref('')
-const newChapterTitle = ref('')
-const newChapterPosition = ref('after')
-
-// 编辑器引用
 const editorRef = ref(null)
+const content = ref('')
+const chapterTitle = ref('')
+const novelTitle = ref('')
+const currentChapterId = ref(null)
+const chapters = ref([])
+const saving = ref(false)
+const showChapterList = ref(false)
+const showAIAssistant = ref(false)
+const aiResult = ref('')
+const keyboardVisible = ref(false)
+const autoSaveStatus = ref('')
+const dailyWordCount = ref(0)
+const dailyGoal = ref(2000)
 
 // 自动保存定时器
 let autoSaveTimer = null
-let lastSavedContent = ''
-
-// 写作计时
-const writingTime = ref(0)
-let writingTimer = null
-let lastInputTime = Date.now()
-
-// 手势相关
-const touchStartX = ref(0)
-const touchStartY = ref(0)
 
 // ==================== 计算属性 ====================
 
 /**
- * 计算字数（中文字符+英文单词）
+ * 字数统计
  */
 const wordCount = computed(() => {
-  const text = content.value || ''
-  // 中文字符数
-  const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length
-  // 英文单词数
-  const englishWords = (text.match(/[a-zA-Z]+/g) || []).length
-  return chineseChars + englishWords
-})
-
-/**
- * 计算字符数（包含所有字符）
- */
-const charCount = computed(() => {
-  return (content.value || '').length
+  return content.value.replace(/\s/g, '').length
 })
 
 /**
  * 编辑器样式
  */
-const editorStyle = computed(() => ({
-  fontSize: `${fontSize.value}px`,
-  lineHeight: lineHeight.value
-}))
+const editorStyle = computed(() => {
+  const style = {}
+  
+  if (keyboardVisible.value) {
+    style.paddingBottom = '60px'
+  }
+  
+  return style
+})
 
 // ==================== 方法 ====================
 
 /**
- * 处理返回按钮
+ * 返回上一页
  */
-const handleBack = () => {
-  if (content.value !== lastSavedContent) {
-    ElMessageBox.confirm(
-      '有未保存的内容，是否保存后退出？',
-      '确认退出',
-      {
-        confirmButtonText: '保存并退出',
-        cancelButtonText: '直接退出',
-        type: 'warning',
-        distinguishCancelAndClose: true
-      }
-    ).then(() => {
-      saveContent().then(() => router.back())
-    }).catch((action) => {
-      if (action === 'cancel') {
-        router.back()
-      }
-    })
-  } else {
-    router.back()
+function goBack() {
+  // 检查是否有未保存的内容
+  if (content.value) {
+    saveChapter()
   }
+  router.back()
 }
 
 /**
- * 处理输入
+ * 保存章节
  */
-const handleInput = () => {
-  lastInputTime = Date.now()
-
-  // 重置自动保存定时器
-  if (autoSaveTimer) {
-    clearTimeout(autoSaveTimer)
-  }
-
-  if (autoSaveEnabled.value) {
-    autoSaveTimer = setTimeout(() => {
-      autoSave()
-    }, 30000) // 30秒后自动保存
-  }
-}
-
-/**
- * 处理键盘事件
- */
-const handleKeydown = (e) => {
-  // Ctrl+S 保存
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault()
-    saveContent()
-  }
-}
-
-/**
- * 自动保存
- */
-const autoSave = async () => {
-  if (content.value === lastSavedContent) return
-
+async function saveChapter() {
+  if (saving.value || !content.value) return
+  
+  saving.value = true
+  
   try {
-    await saveContent()
-    showAutoSaveToast.value = true
-    setTimeout(() => {
-      showAutoSaveToast.value = false
-    }, 2000)
-  } catch (error) {
-    console.error('自动保存失败:', error)
-  }
-}
-
-/**
- * 保存内容
- */
-const saveContent = async () => {
-  if (!currentChapter.value) {
-    ElMessage.warning('请先选择章节')
-    return
-  }
-
-  isSaving.value = true
-  saveStatus.value = '保存中...'
-
-  try {
-    await database.updateChapter(currentChapter.value.id, {
+    const chapterData = {
+      id: currentChapterId.value || Date.now().toString(),
+      title: chapterTitle.value || `第${chapters.value.length + 1}章`,
       content: content.value,
-      wordCount: wordCount.value
-    })
-
-    lastSavedContent = content.value
-    saveStatus.value = '已保存'
-
-    // 记录写作会话
-    await database.statistics.recordWritingSession(
-      currentProject.value.id,
-      wordCount.value,
-      writingTime.value
-    )
-
-    setTimeout(() => {
-      saveStatus.value = '保存'
-    }, 2000)
+      wordCount: wordCount.value,
+      updatedAt: new Date().toISOString(),
+    }
+    
+    await novelStore.saveChapter(route.params.novelId, chapterData)
+    
+    // 更新章节列表
+    if (!currentChapterId.value) {
+      chapters.value.push(chapterData)
+      currentChapterId.value = chapterData.id
+    } else {
+      const index = chapters.value.findIndex(c => c.id === currentChapterId.value)
+      if (index !== -1) {
+        chapters.value[index] = chapterData
+      }
+    }
+    
+    // Termux 环境自动保存到文件
+    if (termuxAPI.isTermux) {
+      await termuxAPI.files.saveNovel(novelTitle.value, content.value)
+    }
+    
+    showAutoSaveStatus('已保存')
   } catch (error) {
     console.error('保存失败:', error)
-    saveStatus.value = '保存失败'
-    ElMessage.error('保存失败')
+    showAutoSaveStatus('保存失败')
   } finally {
-    isSaving.value = false
+    saving.value = false
   }
 }
 
 /**
- * 切换专注模式
+ * 快速保存
  */
-const toggleFocusMode = () => {
-  isFocusMode.value = !isFocusMode.value
-
-  if (isFocusMode.value) {
-    // 进入专注模式，请求屏幕常亮
-    if (keepScreenOn.value && 'wakeLock' in navigator) {
-      requestWakeLock()
-    }
-  } else {
-    // 退出专注模式
-    releaseWakeLock()
+async function quickSave() {
+  await saveChapter()
+  
+  // 震动反馈
+  if (mobileAPI.isNative) {
+    mobileAPI.biometric.vibrate?.(50)
   }
 }
 
 /**
- * 请求屏幕常亮
+ * 导出章节
  */
-let wakeLock = null
-const requestWakeLock = async () => {
+async function exportChapter() {
+  if (!content.value) return
+  
   try {
-    wakeLock = await navigator.wakeLock.request('screen')
+    if (termuxAPI.isTermux) {
+      const path = await termuxAPI.files.saveNovel(
+        chapterTitle.value || '未命名章节',
+        content.value
+      )
+      showAutoSaveStatus(`已导出到: ${path}`)
+    } else if (mobileAPI.isNative) {
+      await mobileAPI.share.shareContent({
+        title: chapterTitle.value,
+        text: content.value,
+      })
+    } else {
+      // Web 环境下载
+      const blob = new Blob([content.value], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${chapterTitle.value || '章节'}.txt`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
   } catch (error) {
-    console.error('请求屏幕常亮失败:', error)
+    console.error('导出失败:', error)
   }
-}
-
-/**
- * 释放屏幕常亮
- */
-const releaseWakeLock = () => {
-  if (wakeLock) {
-    wakeLock.release()
-    wakeLock = null
-  }
-}
-
-/**
- * 格式化时间显示
- */
-const formatTime = (seconds) => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
 /**
  * 选择章节
  */
-const selectChapter = async (chapter) => {
-  // 保存当前章节
-  if (currentChapter.value && content.value !== lastSavedContent) {
-    await saveContent()
-  }
-
-  currentChapter.value = chapter
+function selectChapter(chapter) {
+  currentChapterId.value = chapter.id
+  chapterTitle.value = chapter.title
   content.value = chapter.content || ''
-  lastSavedContent = content.value
-  showChapters.value = false
-
-  // 更新标题
-  editingTitle.value = chapter.title
+  showChapterList.value = false
+  
+  nextTick(() => {
+    editorRef.value?.focus()
+  })
 }
 
 /**
- * 保存标题
+ * 新建章节
  */
-const saveTitle = async () => {
-  if (!currentChapter.value || !editingTitle.value.trim()) {
-    ElMessage.warning('请输入章节标题')
-    return
-  }
-
-  try {
-    await database.updateChapter(currentChapter.value.id, {
-      title: editingTitle.value
-    })
-    currentChapter.value.title = editingTitle.value
-    showTitleEdit.value = false
-    ElMessage.success('标题已更新')
-  } catch (error) {
-    console.error('更新标题失败:', error)
-    ElMessage.error('更新失败')
-  }
+function addNewChapter() {
+  currentChapterId.value = null
+  chapterTitle.value = ''
+  content.value = ''
+  showChapterList.value = false
+  
+  nextTick(() => {
+    editorRef.value?.focus()
+  })
 }
 
 /**
- * 创建新章节
+ * 插入格式
  */
-const createNewChapter = () => {
-  showChapters.value = false
-  newChapterTitle.value = ''
-  showNewChapterDialog.value = true
+function insertFormat(type) {
+  const editor = editorRef.value
+  if (!editor) return
+  
+  const start = editor.selectionStart
+  const end = editor.selectionEnd
+  const selectedText = content.value.substring(start, end)
+  
+  let insertText = ''
+  
+  switch (type) {
+    case 'bold':
+      insertText = `**${selectedText || '粗体文本'}**`
+      break
+    case 'italic':
+      insertText = `*${selectedText || '斜体文本'}*`
+      break
+    case 'quote':
+      insertText = `\n> ${selectedText || '引用内容'}\n`
+      break
+    case 'dialog':
+      insertText = `"${selectedText || '对话内容'}"`
+      break
+  }
+  
+  content.value = 
+    content.value.substring(0, start) + 
+    insertText + 
+    content.value.substring(end)
+  
+  // 移动光标
+  nextTick(() => {
+    editor.focus()
+    const newPos = start + insertText.length
+    editor.setSelectionRange(newPos, newPos)
+  })
 }
 
 /**
- * 确认创建章节
+ * AI生成
  */
-const confirmCreateChapter = async () => {
-  if (!newChapterTitle.value.trim()) {
-    ElMessage.warning('请输入章节标题')
-    return
+async function aiGenerate(type) {
+  // 这里应该调用实际的AI API
+  // 目前显示模拟结果
+  const prompts = {
+    continue: '正在续写...',
+    expand: '正在扩写...',
+    polish: '正在润色...',
+    dialog: '正在生成对话...',
+    describe: '正在生成场景描写...',
+    character: '正在生成人物刻画...',
   }
-
-  creating.value = true
-  try {
-    let order = chapters.value.length + 1
-    if (newChapterPosition.value === 'after' && currentChapter.value) {
-      order = currentChapter.value.order + 1
-      // 更新后续章节的顺序
-      for (const chapter of chapters.value) {
-        if (chapter.order >= order) {
-          await database.updateChapter(chapter.id, {
-            order: chapter.order + 1
-          })
-        }
-      }
+  
+  aiResult.value = prompts[type] || 'AI生成中...'
+  
+  // 模拟AI响应
+  setTimeout(() => {
+    const results = {
+      continue: '阳光透过窗帘洒落在书桌上，她轻轻翻过一页，目光在字里行间流连。',
+      expand: '街道上人来人往，每个人都在为自己的生活奔波。小贩的叫卖声、汽车的鸣笛声、行人的脚步声，交织成一首城市的交响曲。',
+      polish: '月光如水，静静地流淌在这片古老的土地上。',
+      dialog: '"你真的决定要走了吗？"她轻声问道，声音里带着一丝不易察觉的颤抖。\n\n"是的，"他沉默了片刻，"有些事情，我必须去面对。"',
+      describe: '远处的山峦在夕阳的映照下呈现出金红色的光芒，近处的溪水潺潺流淌，清澈见底，偶尔有几尾小鱼游过，激起一圈圈涟漪。',
+      character: '他身材高大，眉宇间透着一股英气。那双深邃的眼睛仿佛能看透一切，却又带着一丝难以捉摸的神秘。',
     }
-
-    const chapterId = await database.createChapter({
-      projectId: currentProject.value.id,
-      title: newChapterTitle.value,
-      content: '',
-      order: order,
-      status: 'draft'
-    })
-
-    // 重新加载章节列表
-    await loadChapters()
-
-    // 选中新章节
-    const newChapter = chapters.value.find(c => c.id === chapterId)
-    if (newChapter) {
-      await selectChapter(newChapter)
-    }
-
-    showNewChapterDialog.value = false
-    ElMessage.success('章节创建成功')
-  } catch (error) {
-    console.error('创建章节失败:', error)
-    ElMessage.error('创建失败')
-  } finally {
-    creating.value = false
-  }
+    
+    aiResult.value = results[type] || 'AI生成完成'
+  }, 1500)
 }
 
 /**
- * 插入模板
+ * 应用AI结果
  */
-const showTemplateDialog = ref(false)
-const writingTemplates = [
-  { id: 'opening', name: '开头模板', content: '故事发生在一个看似平凡的小镇上。没有人注意到，那个深秋的傍晚，一个陌生人悄然走进了镇上唯一的旅馆。\n\n' },
-  { id: 'conflict', name: '转折模板', content: '就在一切看似平静的时候，一封突如其来的信件打破了所有的宁静。信上只有短短一行字，却让所有人的命运从此改变。\n\n' },
-  { id: 'climax', name: '高潮模板', content: '风声呼啸，雨点如注。他站在悬崖边，身后是穷追不舍的敌人，面前是万丈深渊。没有退路，也没有选择。\n\n' },
-  { id: 'ending', name: '结尾模板', content: '多年以后，当他再次回到这个地方时，一切都已物是人非。唯有那棵老槐树依然伫立在村口，见证着岁月的流转。\n\n' },
-  { id: 'dialogue', name: '对话模板', content: '"你以为这就是结局了吗？"他冷冷地说道，嘴角微微上扬。\n\n她握紧了拳头，努力让自己保持冷静："不，这只是开始。"\n\n' },
-  { id: 'description', name: '环境描写模板', content: '夕阳西下，金色的余晖洒满了整个山谷。远处的溪流在暮色中闪烁着微光，空气中弥漫着泥土和野花的芬芳。几只归巢的飞鸟划过天际，留下一串悠长的鸣叫。\n\n' }
-]
-
-const insertTemplate = () => {
-  showTools.value = false
-  showTemplateDialog.value = true
-}
-
-const applyTemplate = (template) => {
-  if (!content.value || content.value.endsWith('\n')) {
-    content.value += template.content
-  } else {
-    content.value += '\n\n' + template.content
-  }
-  showTemplateDialog.value = false
-  ElMessage.success(`已插入「${template.name}」`)
+function applyAIResult() {
+  if (!aiResult.value) return
+  
+  content.value += '\n\n' + aiResult.value
+  aiResult.value = ''
+  showAIAssistant.value = false
 }
 
 /**
- * AI续写
+ * 重新生成AI结果
  */
-const isGeneratingAI = ref(false)
-
-const generateWithAI = async () => {
-  showTools.value = false
-
-  if (!content.value.trim()) {
-    ElMessage.warning('请先写一些内容，AI 将根据上下文进行续写')
-    return
-  }
-
-  isGeneratingAI.value = true
-  try {
-    const context = content.value.slice(-500) // 取最后500字作为上下文
-    const prompt = `请根据以下小说内容，续写约200-300字的后续情节，保持风格和语调一致：\n\n${context}`
-    const result = await novelStore.generateContent(prompt)
-    if (result) {
-      content.value += '\n\n' + result
-      ElMessage.success('AI 续写完成')
-    }
-  } catch (error) {
-    console.error('AI续写失败:', error)
-    ElMessage.error('AI续写失败，请检查API配置')
-  } finally {
-    isGeneratingAI.value = false
-  }
+function regenerateAI() {
+  aiResult.value = ''
+  // 重新调用AI生成
 }
 
 /**
- * 导出当前章节
+ * 显示自动保存状态
  */
-const exportCurrent = async () => {
-  showTools.value = false
-  if (!currentChapter.value) {
-    ElMessage.warning('请先选择章节')
-    return
-  }
-
-  try {
-    const blob = new Blob([content.value], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${currentChapter.value.title}.txt`
-    link.click()
-    URL.revokeObjectURL(url)
-    ElMessage.success('导出成功')
-  } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
-  }
-}
-
-// ==================== 手势支持 ====================
-
-/**
- * 处理触摸开始
- */
-const handleTouchStart = (e) => {
-  touchStartX.value = e.touches[0].clientX
-  touchStartY.value = e.touches[0].clientY
+function showAutoSaveStatus(status) {
+  autoSaveStatus.value = status
+  setTimeout(() => {
+    autoSaveStatus.value = ''
+  }, 2000)
 }
 
 /**
- * 处理触摸结束（左滑返回）
+ * 处理输入
  */
-const handleTouchEnd = (e) => {
-  const touchEndX = e.changedTouches[0].clientX
-  const touchEndY = e.changedTouches[0].clientY
-
-  const deltaX = touchEndX - touchStartX.value
-  const deltaY = touchEndY - touchStartY.value
-
-  // 判断是否为左滑手势（从右向左滑动超过100px）
-  if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < -100) {
-    // 在编辑器边缘左滑才触发返回
-    if (touchStartX.value < 50) {
-      handleBack()
-    }
-  }
-}
-
-// ==================== 数据加载 ====================
-
-/**
- * 加载项目信息
- */
-const loadProject = async (projectId) => {
-  try {
-    currentProject.value = await database.getProject(projectId)
-  } catch (error) {
-    console.error('加载项目失败:', error)
-    ElMessage.error('加载项目失败')
-  }
+function handleInput() {
+  // 触发自动保存
+  clearTimeout(autoSaveTimer)
+  autoSaveTimer = setTimeout(() => {
+    saveChapter()
+  }, 3000)
 }
 
 /**
- * 加载章节列表
+ * 处理编辑器聚焦
  */
-const loadChapters = async () => {
-  if (!currentProject.value) return
-
-  try {
-    chapters.value = await database.getChapters(currentProject.value.id)
-  } catch (error) {
-    console.error('加载章节失败:', error)
-  }
+function handleEditorFocus() {
+  keyboardVisible.value = true
 }
 
 /**
- * 加载章节内容
+ * 处理编辑器失焦
  */
-const loadChapter = async (chapterId) => {
-  try {
-    const chapter = await database.getChapter(chapterId)
-    if (chapter) {
-      currentChapter.value = chapter
-      content.value = chapter.content || ''
-      lastSavedContent = content.value
-      editingTitle.value = chapter.title
-    }
-  } catch (error) {
-    console.error('加载章节失败:', error)
-  }
+function handleEditorBlur() {
+  setTimeout(() => {
+    keyboardVisible.value = false
+  }, 100)
+}
+
+/**
+ * 处理输入框聚焦
+ */
+function handleInputFocus() {
+  keyboardVisible.value = true
+}
+
+/**
+ * 处理输入框失焦
+ */
+function handleInputBlur() {
+  setTimeout(() => {
+    keyboardVisible.value = false
+  }, 100)
 }
 
 // ==================== 生命周期 ====================
 
 onMounted(async () => {
-  const { projectId, chapterId } = route.query
-
-  if (projectId) {
-    await loadProject(parseInt(projectId))
-    await loadChapters()
-
-    if (chapterId) {
-      await loadChapter(parseInt(chapterId))
-    } else if (chapters.value.length > 0) {
-      await selectChapter(chapters.value[0])
+  // 加载小说数据
+  if (route.params.novelId) {
+    const novel = await novelStore.getNovel(route.params.novelId)
+    if (novel) {
+      novelTitle.value = novel.title
+      chapters.value = novel.chapters || []
+      
+      // 加载指定章节
+      if (route.params.chapterId) {
+        const chapter = chapters.value.find(c => c.id === route.params.chapterId)
+        if (chapter) {
+          selectChapter(chapter)
+        }
+      }
     }
   }
-
-  // 启动写作计时器
-  writingTimer = setInterval(() => {
-    // 如果30秒内没有输入，不计时
-    if (Date.now() - lastInputTime < 30000) {
-      writingTime.value++
-    }
-  }, 1000)
-
-  // 添加手势监听
-  try { if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-    document.addEventListener('touchstart', handleTouchStart)
-    document.addEventListener('touchend', handleTouchEnd)
-  } } catch(e) {}
+  
+  // 监听键盘事件
+  if (mobileAPI.isNative) {
+    mobileAPI.keyboard.onShow((height) => {
+      keyboardVisible.value = true
+    })
+    mobileAPI.keyboard.onHide(() => {
+      keyboardVisible.value = false
+    })
+  }
 })
 
 onUnmounted(() => {
-  // 清理定时器
-  if (autoSaveTimer) {
-    clearTimeout(autoSaveTimer)
-  }
-  if (writingTimer) {
-    clearInterval(writingTimer)
-  }
-
-  // 释放屏幕常亮
-  releaseWakeLock()
-
-  // 移除手势监听
-  try { if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
-    document.removeEventListener('touchstart', handleTouchStart)
-    document.removeEventListener('touchend', handleTouchEnd)
-  } } catch(e) {}
-})
-
-// 监听设置变化并保存到本地存储
-watch([fontSize, lineHeight, autoSaveEnabled, typingSoundEnabled, keepScreenOn], () => {
-  localStorage.setItem('writer_settings', JSON.stringify({
-    fontSize: fontSize.value,
-    lineHeight: lineHeight.value,
-    autoSaveEnabled: autoSaveEnabled.value,
-    typingSoundEnabled: typingSoundEnabled.value,
-    keepScreenOn: keepScreenOn.value
-  }))
-})
-
-// 加载设置
-onMounted(() => {
-  const savedSettings = localStorage.getItem('writer_settings')
-  if (savedSettings) {
-    try {
-      const settings = JSON.parse(savedSettings)
-      fontSize.value = settings.fontSize || 18
-      lineHeight.value = settings.lineHeight || 1.8
-      autoSaveEnabled.value = settings.autoSaveEnabled !== false
-      typingSoundEnabled.value = settings.typingSoundEnabled || false
-      keepScreenOn.value = settings.keepScreenOn !== false
-    } catch (error) {
-      console.error('加载设置失败:', error)
-    }
-  }
+  clearTimeout(autoSaveTimer)
 })
 </script>
 
@@ -861,356 +544,320 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #fafafa;
+  background: #fff;
 }
 
-.mobile-writer.focus-mode {
-  background: #ffffff;
-}
-
-/* 顶部标题栏 */
+/* 顶部工具栏 */
 .writer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  background: white;
-  border-bottom: 1px solid #ebeef5;
+  padding: 0 16px;
+  height: 44px;
+  background: #fff;
+  border-bottom: 1px solid #ebedf0;
   flex-shrink: 0;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.title-section {
-  flex: 1;
-  min-width: 0;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-
-.title-section:active {
-  background: #f5f7fa;
-}
-
-.chapter-title {
+.back-btn,
+.save-btn {
+  background: none;
+  border: none;
   font-size: 16px;
+  color: #667eea;
+  padding: 8px;
+}
+
+.save-btn:disabled {
+  color: #ccc;
+}
+
+.writer-title {
+  font-size: 17px;
   font-weight: 600;
   margin: 0;
-  white-space: nowrap;
+  flex: 1;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #303133;
-}
-
-.project-name {
-  font-size: 12px;
-  color: #909399;
-  margin: 2px 0 0 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+/* 章节信息 */
+.chapter-info {
+  padding: 12px 16px;
+  background: #f9f9f9;
+  border-bottom: 1px solid #ebedf0;
 }
 
-/* 专注模式退出按钮 */
-.focus-exit {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 100;
-  color: #606266;
+.chapter-title-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
 }
 
-/* 编辑器容器 */
+.chapter-title-input:focus {
+  outline: none;
+}
+
+.word-count {
+  font-size: 13px;
+  color: #999;
+}
+
+.goal-progress {
+  color: #667eea;
+}
+
+/* 编辑器 */
 .editor-container {
   flex: 1;
-  position: relative;
   overflow: hidden;
+  padding: 16px;
 }
 
-.writer-editor {
+.editor {
   width: 100%;
   height: 100%;
-  padding: 16px;
   border: none;
-  outline: none;
   resize: none;
-  font-size: v-bind('fontSize + "px"');
-  line-height: v-bind('lineHeight');
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  background: transparent;
-  color: #303133;
+  font-size: 17px;
+  line-height: 1.8;
+  color: #333;
 }
 
-.writer-editor::placeholder {
-  color: #c0c4cc;
-}
-
-/* 自动保存提示 */
-.autosave-toast {
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  z-index: 10;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s, transform 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(10px);
+.editor:focus {
+  outline: none;
 }
 
 /* 底部工具栏 */
 .writer-footer {
+  background: #fff;
+  border-top: 1px solid #ebedf0;
+  transition: transform 0.3s ease;
+}
+
+.toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  justify-content: space-around;
+  padding: 8px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tool-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
   padding: 8px 12px;
-  background: white;
-  border-top: 1px solid #ebeef5;
-  flex-shrink: 0;
+  border-radius: 8px;
 }
 
-.footer-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.tool-btn:active {
+  background: #f5f5f5;
 }
 
-.word-count {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: #606266;
-}
-
-.char-count {
-  font-size: 12px;
-  color: #909399;
-}
-
-.footer-center,
-.footer-right {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* 专注模式底部 */
-.focus-footer {
-  position: fixed;
-  bottom: 16px;
-  left: 0;
-  right: 0;
+.quick-actions {
   display: flex;
   justify-content: center;
-  gap: 24px;
-  color: #909399;
-  font-size: 13px;
-  z-index: 10;
+  gap: 16px;
+  padding: 12px;
 }
 
-/* 章节列表 */
-.chapters-list {
-  padding: 8px 0;
+.action-btn {
+  padding: 8px 24px;
+  border: 1px solid #667eea;
+  border-radius: 20px;
+  background: #fff;
+  color: #667eea;
+  font-size: 14px;
+}
+
+.action-btn:active {
+  background: #f5f5ff;
+}
+
+/* 章节抽屉 */
+.chapter-drawer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #ebedf0;
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+}
+
+.chapter-list {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .chapter-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f0f2f5;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.chapter-item:active {
-  background: #f5f7fa;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .chapter-item.active {
-  background: #f0f7ff;
-  color: #409eff;
+  background: #f5f5ff;
 }
 
-.chapter-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.chapter-order {
-  font-size: 12px;
-  color: #909399;
+.chapter-number {
+  color: #667eea;
+  font-size: 13px;
+  margin-right: 8px;
 }
 
 .chapter-name {
-  font-size: 14px;
-  color: #303133;
-}
-
-.chapter-item.active .chapter-name {
-  color: #409eff;
-  font-weight: 500;
-}
-
-/* 工具面板 */
-.tools-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  padding: 16px;
-}
-
-.tool-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 8px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.tool-item:active {
-  background: #f5f7fa;
-}
-
-.tool-item .el-icon {
-  font-size: 24px;
-  color: #667eea;
-}
-
-.tool-item span {
-  font-size: 12px;
-  color: #606266;
-}
-
-/* 设置面板 */
-.settings-list {
-  padding: 16px;
-}
-
-.setting-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f2f5;
-}
-
-.setting-item:last-child {
-  border-bottom: none;
-}
-
-.setting-label {
-  font-size: 14px;
-  color: #303133;
-  min-width: 80px;
-}
-
-.setting-item .el-slider {
   flex: 1;
+  font-size: 15px;
 }
 
-.setting-value {
-  font-size: 13px;
-  color: #909399;
-  min-width: 50px;
-  text-align: right;
+.chapter-words {
+  font-size: 12px;
+  color: #999;
 }
 
-/* 对话框样式 */
-:deep(.mobile-dialog) {
-  border-radius: 16px;
+.add-chapter-btn {
+  margin: 16px;
+  background: #667eea;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
 }
 
-/* 模板列表 */
-.template-list {
+/* AI助手面板 */
+.ai-assistant-panel {
+  height: 100%;
   display: flex;
   flex-direction: column;
+  background: #fff;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #ebedf0;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.ai-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+  padding: 16px;
 }
 
-.template-item {
-  padding: 12px 16px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.template-item:active {
-  background: #f5f7fa;
-}
-
-.template-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 4px;
-}
-
-.template-preview {
+.ai-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 8px;
+  background: #f9f9f9;
+  border: none;
+  border-radius: 12px;
   font-size: 13px;
-  color: #909399;
-  line-height: 1.5;
 }
 
-/* 安全区域 */
-.safe-area-bottom {
-  height: env(safe-area-inset-bottom, 0);
-  flex-shrink: 0;
+.ai-option-btn:active {
+  background: #f0f0f0;
 }
 
-/* 抽屉样式 */
-:deep(.chapters-drawer .el-drawer__body) {
-  padding: 0;
+.ai-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
 }
 
-:deep(.tools-drawer .el-drawer__body) {
-  padding: 0;
+.ai-result {
+  flex: 1;
+  padding: 16px;
+  border-top: 1px solid #ebedf0;
 }
 
-:deep(.settings-drawer .el-drawer__body) {
-  padding: 0;
+.result-content {
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* 自动保存提示 */
+.auto-save-toast {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 1000;
+}
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .mobile-writer {
+    background: #1a1a1a;
+  }
+  
+  .writer-header {
+    background: #1a1a1a;
+    border-bottom-color: #404040;
+  }
+  
+  .chapter-info {
+    background: #2d2d2d;
+    border-bottom-color: #404040;
+  }
+  
+  .editor {
+    color: #e0e0e0;
+  }
+  
+  .writer-footer {
+    background: #1a1a1a;
+    border-top-color: #404040;
+  }
+  
+  .tool-btn:active {
+    background: #3d3d3d;
+  }
 }
 </style>
