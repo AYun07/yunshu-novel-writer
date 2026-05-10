@@ -142,7 +142,7 @@
 
       <!-- 侧边栏底部版本信息 -->
       <div class="sidebar-footer" v-if="!isCollapse">
-        <span class="version-tag">v2.0.0</span>
+        <span class="version-tag">v2.1.0</span>
       </div>
     </div>
 
