@@ -4,6 +4,83 @@
 
 ---
 
+## [v2.6.0] - 2026-05-10
+
+### 📱 全面设备适配
+
+**响应式CSS框架** (`src/styles/responsive.css`)
+- 6级断点系统：xs(0-575px) / sm(576-767px) / md(768-1023px) / lg(1024-1279px) / xl(1280-1535px) / 2xl(1536px+)
+- iPhone/Android 安全区域适配（刘海屏、底部导航栏）
+- 触摸目标优化：最小 44px 可点击区域
+- 响应式容器、网格、字体、间距系统
+- 移动端卡片、列表、导航、模态框、表单组件优化
+- 深色模式全面支持
+- 横屏适配（紧凑布局、侧边导航）
+- 页面切换动画（滑动、淡入淡出、底部弹出）
+
+**移动端原生API** (`src/utils/mobileAPI.js`)
+- 设备信息：型号、系统版本、电池状态
+- 文件系统：读写、目录操作、应用数据目录
+- 分享功能：文本分享、章节分享、小说链接分享
+- 推送通知：远程推送注册、本地通知、写作提醒
+- 相机/相册：拍照、选图（Web回退支持）
+- 网络状态：在线检测、状态变化监听
+- 键盘控制：显示/隐藏监听、高度获取
+- 生物识别：指纹/面容验证
+- 应用信息：版本获取、状态监听、返回按钮处理
+
+**Termux 环境适配** (`src/utils/termuxAPI.js`)
+- Termux 环境自动检测（User-Agent + 全局对象）
+- 外部存储访问（读取、写入、目录操作）
+- 小说多格式导出：TXT / Markdown / HTML
+- 自动备份与恢复（带时间戳的JSON备份）
+- Termux:API 集成（Toast、振动、剪贴板、分享）
+- 命令行集成（Shell执行、终端打开）
+- 快速保存（Web环境回退到下载）
+
+**移动端布局增强** (`src/layouts/MobileLayout.vue`)
+- 底部导航栏：首页 / 项目 / 写作 / 我的
+- 安全区域自动适配
+- 页面滑动切换动画
+- 浮动快速写作按钮
+- 键盘弹出时自动调整布局
+- Android 返回按钮处理
+
+**移动端写作页面** (`src/views/mobile/MobileWriter.vue`)
+- 全屏沉浸式编辑体验
+- 章节管理（切换、新建、列表抽屉）
+- AI 写作助手面板（续写、扩写、润色、对话、场景、人物）
+- 自动保存（3秒无操作触发）
+- 实时字数统计与每日目标进度
+- 格式化工具栏（加粗、斜体、引用、对话）
+- 导出功能（Termux文件保存 / 原生分享 / Web下载）
+- 振动反馈
+
+**平台检测增强** (`src/composables/usePlatform.js`)
+- 设备类型检测：手机 / 平板 / 桌面
+- 操作系统检测：iOS / Android / Windows / macOS / Linux
+- 浏览器检测：Edge / Chrome / Safari / Firefox
+- Termux / Capacitor 原生环境检测
+- 响应式断点实时监听
+- 安全区域动态获取
+- 网络在线/离线状态
+- 新增 `useBreakpoint` / `useOrientation` / `useSafeArea` / `useTouch` 子Hook
+
+### 🔧 构建修复
+
+- macOS 构建：关闭 `hardenedRuntime`，添加 `identity: null`，解决CI无签名证书问题
+- Android 构建：Java 版本从 17 升级到 21，匹配 Capacitor 8.x 要求
+- Electron 图标路径：修复引用不存在的 `icon.icns` 文件
+- GitHub Actions：添加 `permissions: contents: write` 解决 Release 权限问题
+
+### 📦 发行版安装包
+
+- Windows: `云书 Setup 2.5.0.exe` (197 MB) + `云书 2.5.0.exe` 便携版 (103 MB)
+- Linux: `云书-2.5.0.AppImage` (147 MB) + `yunshu_2.5.0_amd64.deb` (87.6 MB)
+- Android: `app-debug.apk` (7.71 MB)
+
+---
+
 ## [v2.5.0] - 2026-05-10
 
 ### 🚀 GitHub Actions 自动构建

@@ -342,7 +342,7 @@ export default defineConfig(({ mode }) => {
     // 定义环境变量
     // ============================================
     define: {
-      __APP_VERSION__: JSON.stringify('2.5.0'),
+      __APP_VERSION__: JSON.stringify('2.6.0'),
       __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
       __CAPACITOR__: JSON.stringify(isProduction),
     }
