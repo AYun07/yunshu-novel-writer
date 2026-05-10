@@ -1,7 +1,12 @@
 /**
  * 数据同步服务
  * 实现跨平台数据同步架构
- * 
+ *
+ * 【需要后端】此模块的同步功能需要搭配后端服务使用。
+ * 默认同步地址为占位符，使用前请替换为您自己的后端地址。
+ * 推荐使用 Supabase / Firebase / 自建 Node.js 服务。
+ * 离线队列和冲突解决逻辑已完整实现，只需对接后端 API。
+ *
  * 同步策略：本地优先，云端备份
  * 冲突解决：时间戳优先，支持手动合并
  * 增量同步：只同步变更数据
@@ -46,8 +51,11 @@ export const syncState = reactive({
  */
 const syncConfig = {
   // 同步端点配置
+  // 【占位符】请将下方 URL 替换为您自己的后端服务地址。
+  // 可通过环境变量 VITE_SYNC_API_URL 配置，或直接修改默认值。
+  // 推荐方案：Supabase / Firebase / 自建 Node.js (Express/Koa/NestJS)
   endpoints: {
-    baseURL: import.meta.env.VITE_SYNC_API_URL || 'https://api.yunshu.app',
+    baseURL: import.meta.env.VITE_SYNC_API_URL || 'https://YOUR-BACKEND-PLACEHOLDER.example.com',
     sync: '/api/v1/sync',
     upload: '/api/v1/upload',
     download: '/api/v1/download'
@@ -557,6 +565,17 @@ class SyncService {
 
   /**
    * 获取认证令牌
+   *
+   * 【需要自行实现】当前实现仅从 localStorage 读取 token。
+   * 完整的认证流程应包括：
+   * 1. 用户登录时，向后端发送凭据，获取 JWT / session token
+   * 2. 将 token 安全存储（推荐 httpOnly cookie 或安全存储方案）
+   * 3. token 过期时自动刷新（refresh token 机制）
+   * 4. 请求失败（401）时触发重新登录
+   *
+   * 推荐方案：JWT + refresh token / OAuth 2.0 / Supabase Auth / Firebase Auth
+   *
+   * @returns {string} 认证令牌
    */
   getAuthToken() {
     return localStorage.getItem('yunshu_auth_token') || ''

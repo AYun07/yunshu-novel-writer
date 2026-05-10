@@ -214,30 +214,66 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { collaborationService } from '../services/collaborationService.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
+import { STORAGE_KEYS } from '../utils/constants.js'
+
+// localStorage 数据键
+const COLLAB_SHARE_LINKS_KEY = 'yunshu_collab_share_links'
+const COLLAB_COMMENTS_KEY = 'yunshu_collab_comments'
+const COLLAB_VERSIONS_KEY = 'yunshu_collab_versions'
 
 // ==================== Tab 状态 ====================
 const activeTab = ref('share')
 
 // ==================== 章节数据 ====================
-const chapterList = ref([
-  { id: 'ch1', title: '第一章 命运的起点' },
-  { id: 'ch2', title: '第二章 暗流涌动' },
-  { id: 'ch3', title: '第三章 意外相遇' },
-  { id: 'ch4', title: '第四章 真相浮现' },
-  { id: 'ch5', title: '第五章 最终对决' }
-])
+const chapterList = ref([])
+
+// 从 localStorage 加载真实章节数据
+function loadChapterList() {
+  try {
+    const novelsRaw = localStorage.getItem(STORAGE_KEYS.NOVELS)
+    const novels = novelsRaw ? JSON.parse(novelsRaw) : []
+    const allChapters = []
+    novels.forEach(novel => {
+      if (novel.chapterList) {
+        novel.chapterList.forEach(ch => {
+          allChapters.push({ id: String(ch.id), title: ch.title, novelId: novel.id, novelTitle: novel.title })
+        })
+      }
+    })
+    chapterList.value = allChapters
+  } catch (error) {
+    console.error('加载章节数据失败:', error)
+    chapterList.value = []
+  }
+}
+
+// ==================== localStorage 读写工具 ====================
+function loadFromStorage(key, defaultValue) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : defaultValue
+  } catch (error) {
+    console.error(`读取 ${key} 失败:`, error)
+    return defaultValue
+  }
+}
+
+function saveToStorage(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data))
+  } catch (error) {
+    console.error(`保存 ${key} 失败:`, error)
+  }
+}
 
 // ==================== 分享管理 ====================
 const showCreateShareDialog = ref(false)
 const shareForm = reactive({ title: '', projectId: '', chapterId: '', mode: 'readonly', expiresInDays: 30 })
-const shareLinks = ref([
-  { id: 's1', title: '星辰大海 - 全文', token: 'abc123def456', projectId: 'proj1', chapterId: '', mode: 'readonly', createdAt: '2026/05/01 10:00', expiresAt: '2026/06/01 10:00', viewCount: 42, active: true },
-  { id: 's2', title: '第一章审阅', token: 'xyz789', projectId: 'proj1', chapterId: 'ch1', mode: 'commentable', createdAt: '2026/05/05 14:30', expiresAt: '', viewCount: 18, active: true }
-])
+const shareLinks = ref(loadFromStorage(COLLAB_SHARE_LINKS_KEY, []))
 
 const activeShareLinks = computed(() => shareLinks.value.filter(s => s.active))
 const totalViews = computed(() => shareLinks.value.reduce((sum, s) => sum + s.viewCount, 0))
@@ -268,6 +304,7 @@ function createShareLink() {
     viewCount: 0,
     active: true
   })
+  saveToStorage(COLLAB_SHARE_LINKS_KEY, shareLinks.value)
   showCreateShareDialog.value = false
   ElMessage.success('分享链接已创建')
 }
@@ -283,6 +320,7 @@ function revokeShareLink(id) {
   ElMessageBox.confirm('确定撤销该分享链接？', '提示', { type: 'warning' }).then(() => {
     const link = shareLinks.value.find(s => s.id === id)
     if (link) link.active = false
+    saveToStorage(COLLAB_SHARE_LINKS_KEY, shareLinks.value)
     ElMessage.success('链接已撤销')
   }).catch(() => {})
 }
@@ -292,22 +330,35 @@ const reviewChapterId = ref('')
 const showAddCommentDialog = ref(false)
 const commentForm = reactive({ lineNumber: 1, text: '', author: '审阅者' })
 
-const chapterContent = {
-  ch1: '清晨的阳光透过窗帘缝隙洒进房间，主角缓缓睁开了双眼。\n窗外的鸟鸣声此起彼伏，仿佛在诉说着什么。\n他起身走到窗前，推开窗户，深深吸了一口气。\n远处的山峦在薄雾中若隐若现，宛如一幅水墨画。\n桌上放着一封未拆的信件，信封已经泛黄。',
-  ch2: '城市的另一端，一场阴谋正在悄然酝酿。\n昏暗的灯光下，几个人围坐在圆桌旁。\n他们的表情严肃，空气中弥漫着紧张的气氛。\n"计划已经准备好了，"其中一人低声说道。\n其他人纷纷点头，眼中闪烁着危险的光芒。',
-  ch3: '命运的齿轮开始转动，两个看似毫无关联的人在一座古老的图书馆中相遇了。\n她正在翻阅一本泛黄的古籍，手指轻轻划过书页。\n他推门而入，带着一身雨水和疲惫。\n四目相对的瞬间，时间仿佛静止了。'
+// 从 localStorage 读取章节真实内容
+const chapterContentMap = ref({})
+
+function loadChapterContent(chapterId) {
+  try {
+    const novelsRaw = localStorage.getItem(STORAGE_KEYS.NOVELS)
+    const novels = novelsRaw ? JSON.parse(novelsRaw) : []
+    for (const novel of novels) {
+      if (novel.chapterList) {
+        const ch = novel.chapterList.find(c => String(c.id) === chapterId)
+        if (ch) {
+          chapterContentMap.value[chapterId] = ch.content || ''
+          return
+        }
+      }
+    }
+    chapterContentMap.value[chapterId] = ''
+  } catch (error) {
+    console.error('加载章节内容失败:', error)
+    chapterContentMap.value[chapterId] = ''
+  }
 }
 
 const chapterLines = computed(() => {
-  const content = chapterContent[reviewChapterId.value]
+  const content = chapterContentMap.value[reviewChapterId.value]
   return content ? content.split('\n') : []
 })
 
-const comments = ref([
-  { id: 'c1', chapterId: 'ch1', lineNumber: 5, text: '这封信的伏笔设置得很好，建议在后续章节中尽早揭示内容。', author: '编辑A', createdAt: new Date('2026-05-06T10:30:00').toISOString(), resolved: false, replies: [{ id: 'r1', author: '作者', text: '好的，我会在第三章揭示。', createdAt: new Date('2026-05-06T11:00:00').toISOString() }] },
-  { id: 'c2', chapterId: 'ch1', lineNumber: 1, text: '开头的环境描写很优美，但建议增加主角的心理活动。', author: '编辑B', createdAt: new Date('2026-05-07T09:15:00').toISOString(), resolved: true, replies: [] },
-  { id: 'c3', chapterId: 'ch2', lineNumber: 4, text: '对话可以更加紧凑，"计划已经准备好了"这句略显平淡。', author: '编辑A', createdAt: new Date('2026-05-08T14:20:00').toISOString(), resolved: false, replies: [] }
-])
+const comments = ref(loadFromStorage(COLLAB_COMMENTS_KEY, []))
 
 const currentComments = computed(() => {
   return comments.value.filter(c => c.chapterId === reviewChapterId.value)
@@ -317,7 +368,10 @@ function getLineComments(lineNum) {
   return currentComments.value.filter(c => c.lineNumber === lineNum)
 }
 function loadChapterReviews() {
-  // 章节切换时自动加载评论
+  // 章节切换时自动加载评论和章节内容
+  if (reviewChapterId.value) {
+    loadChapterContent(reviewChapterId.value)
+  }
 }
 function addComment() {
   if (!commentForm.text.trim()) {
@@ -334,20 +388,28 @@ function addComment() {
     resolved: false,
     replies: []
   })
+  saveToStorage(COLLAB_COMMENTS_KEY, comments.value)
   commentForm.text = ''
   showAddCommentDialog.value = false
   ElMessage.success('评论已添加')
 }
 function resolveComment(id) {
   const c = comments.value.find(c => c.id === id)
-  if (c) c.resolved = true
+  if (c) {
+    c.resolved = true
+    saveToStorage(COLLAB_COMMENTS_KEY, comments.value)
+  }
 }
 function unresolveComment(id) {
   const c = comments.value.find(c => c.id === id)
-  if (c) c.resolved = false
+  if (c) {
+    c.resolved = false
+    saveToStorage(COLLAB_COMMENTS_KEY, comments.value)
+  }
 }
 function deleteComment(id) {
   comments.value = comments.value.filter(c => c.id !== id)
+  saveToStorage(COLLAB_COMMENTS_KEY, comments.value)
   ElMessage.success('评论已删除')
 }
 
@@ -357,11 +419,7 @@ const diffVersion2 = ref('')
 const diffLines = ref([])
 const diffResult = ref(null)
 
-const versionList = ref([
-  { id: 1, time: '05/01 10:00', message: '初稿', content: '清晨的阳光透过窗帘缝隙洒进房间。\n他起身走到窗前。\n桌上放着一封未拆的信件。' },
-  { id: 2, time: '05/03 15:00', message: '修改描写', content: '清晨的金色阳光透过窗帘缝隙洒进房间，主角缓缓睁开了双眼。\n他起身走到窗前，推开窗户。\n桌上放着一封未拆的信件，信封已经泛黄。' },
-  { id: 3, time: '05/06 09:00', message: '润色', content: '清晨的金色阳光透过窗帘缝隙洒进房间，主角缓缓睁开了双眼。\n窗外的鸟鸣声此起彼伏。\n他起身走到窗前，推开窗户，深深吸了一口气。\n桌上放着一封未拆的信件，信封已经泛黄，散发着陈旧的气息。' }
-])
+const versionList = ref(loadFromStorage(COLLAB_VERSIONS_KEY, []))
 
 function computeDiff() {
   if (!diffVersion1.value || !diffVersion2.value) return
@@ -402,13 +460,17 @@ const revisionList = ref([])
 
 function loadHistory() {
   if (!historyChapterId.value) return
-  revisionList.value = [
-    { id: 'rev5', createdAt: '2026/05/08 16:30', author: '作者', message: '润色第三章结尾', wordCount: 3500, wordChange: +200 },
-    { id: 'rev4', createdAt: '2026/05/07 11:00', author: '作者', message: '修改对话描写', wordCount: 3300, wordChange: +150 },
-    { id: 'rev3', createdAt: '2026/05/05 09:30', author: '编辑A', message: '审阅修改', wordCount: 3150, wordChange: -50 },
-    { id: 'rev2', createdAt: '2026/05/03 15:00', author: '作者', message: '补充环境描写', wordCount: 3200, wordChange: +400 },
-    { id: 'rev1', createdAt: '2026/05/01 10:00', author: '作者', message: '初稿完成', wordCount: 2800, wordChange: 0 }
-  ]
+  // 从 localStorage 读取该章节的版本历史
+  const allVersions = loadFromStorage(COLLAB_VERSIONS_KEY, [])
+  const chapterVersions = allVersions.filter(v => v.chapterId === historyChapterId.value)
+  revisionList.value = chapterVersions.map((v, idx) => ({
+    id: v.id,
+    createdAt: v.time || new Date(v.timestamp).toLocaleString('zh-CN'),
+    author: v.author || '作者',
+    message: v.message || `版本 ${idx + 1}`,
+    wordCount: (v.content || '').length,
+    wordChange: idx > 0 ? (v.content || '').length - (chapterVersions[idx - 1].content || '').length : 0
+  }))
 }
 
 function compareWithPrevious(row) {
@@ -436,7 +498,7 @@ function exportRevisionReport() {
   const ch = chapterList.value.find(c => c.id === historyChapterId.value)
   const report = collaborationService.exportChapter(
     historyChapterId.value,
-    chapterContent[historyChapterId.value] || '',
+    chapterContentMap.value[historyChapterId.value] || '',
     'report'
   )
   // 触发下载
@@ -454,6 +516,11 @@ function exportRevisionReport() {
 function formatTime(isoStr) {
   return new Date(isoStr).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
+
+// ==================== 生命周期 ====================
+onMounted(() => {
+  loadChapterList()
+})
 </script>
 
 <style scoped>

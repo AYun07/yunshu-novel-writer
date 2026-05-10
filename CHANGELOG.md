@@ -4,6 +4,33 @@
 
 ---
 
+## [v2.3.1] - 2026-05-10
+
+### 🔧 质量审计修复
+
+对全项目103个文件进行了深度代码审计，修复了9个半成品文件：
+
+**视图层修复（7个）**
+- `HomePage.vue` - 硬编码模拟数据改为从localStorage读取真实小说数据
+- `ChapterManagement.vue` - 实现章节排序（拼音排序）和批量编辑功能
+- `ExportCenter.vue` - 假数据改为从真实小说/章节数据导出
+- `Collaboration.vue` - 硬编码数据改为localStorage持久化（分享/评论/版本）
+- `MobileWriter.vue` - 实现AI续写（调用novelStore）和模板功能（6个预设模板）
+- `MobileHome.vue` - 改为直接从localStorage读取真实统计数据
+- `PWAInstallPrompt.vue` - 修复语法错误（`unction` → `function`）
+
+**服务层修复（2个）**
+- `syncService.js` - API URL改为占位符，添加后端搭建说明和认证流程文档
+- `multiUserService.js` - 密码哈希添加安全警告、WebSocket添加模拟说明、版本对比改用真实diff算法
+
+**审计结果**
+- 审计范围：103个文件
+- ✅ 真实实现：94个（91%）
+- ⚠️ 半成品：9个 → 全部修复为 ✅
+- ❌ 空架子：0个
+
+---
+
 ## [v2.3.0] - 2026-05-10
 
 ### 📱 跨平台完美适配

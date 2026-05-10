@@ -362,7 +362,7 @@ function showPrompt() {
 
 /**
  * 手动触发显示
- */unction prompt() {
+ */function prompt() {
   showPrompt()
 }
 

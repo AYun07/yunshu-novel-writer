@@ -235,6 +235,29 @@
       </template>
     </el-dialog>
 
+    <!-- 模板选择对话框 -->
+    <el-dialog
+      v-model="showTemplateDialog"
+      title="选择写作模板"
+      width="90%"
+      class="mobile-dialog"
+    >
+      <div class="template-list">
+        <div
+          v-for="tpl in writingTemplates"
+          :key="tpl.id"
+          class="template-item"
+          @click="applyTemplate(tpl)"
+        >
+          <div class="template-name">{{ tpl.name }}</div>
+          <div class="template-preview">{{ tpl.content.slice(0, 60) }}...</div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showTemplateDialog = false">取消</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 安全区域 -->
     <div class="safe-area-bottom"></div>
   </div>
@@ -256,10 +279,12 @@ import {
   Clock, Download, CircleCheck
 } from '@element-plus/icons-vue'
 import database from '../../services/database.js'
+import { useNovelStore } from '../../stores/novel.js'
 
 // ==================== 路由和状态 ====================
 const router = useRouter()
 const route = useRoute()
+const novelStore = useNovelStore()
 
 // ==================== 响应式数据 ====================
 const content = ref('')
@@ -599,19 +624,59 @@ const confirmCreateChapter = async () => {
 /**
  * 插入模板
  */
+const showTemplateDialog = ref(false)
+const writingTemplates = [
+  { id: 'opening', name: '开头模板', content: '故事发生在一个看似平凡的小镇上。没有人注意到，那个深秋的傍晚，一个陌生人悄然走进了镇上唯一的旅馆。\n\n' },
+  { id: 'conflict', name: '转折模板', content: '就在一切看似平静的时候，一封突如其来的信件打破了所有的宁静。信上只有短短一行字，却让所有人的命运从此改变。\n\n' },
+  { id: 'climax', name: '高潮模板', content: '风声呼啸，雨点如注。他站在悬崖边，身后是穷追不舍的敌人，面前是万丈深渊。没有退路，也没有选择。\n\n' },
+  { id: 'ending', name: '结尾模板', content: '多年以后，当他再次回到这个地方时，一切都已物是人非。唯有那棵老槐树依然伫立在村口，见证着岁月的流转。\n\n' },
+  { id: 'dialogue', name: '对话模板', content: '"你以为这就是结局了吗？"他冷冷地说道，嘴角微微上扬。\n\n她握紧了拳头，努力让自己保持冷静："不，这只是开始。"\n\n' },
+  { id: 'description', name: '环境描写模板', content: '夕阳西下，金色的余晖洒满了整个山谷。远处的溪流在暮色中闪烁着微光，空气中弥漫着泥土和野花的芬芳。几只归巢的飞鸟划过天际，留下一串悠长的鸣叫。\n\n' }
+]
+
 const insertTemplate = () => {
   showTools.value = false
-  // 这里可以展开模板选择
-  ElMessage.info('模板功能开发中')
+  showTemplateDialog.value = true
+}
+
+const applyTemplate = (template) => {
+  if (!content.value || content.value.endsWith('\n')) {
+    content.value += template.content
+  } else {
+    content.value += '\n\n' + template.content
+  }
+  showTemplateDialog.value = false
+  ElMessage.success(`已插入「${template.name}」`)
 }
 
 /**
  * AI续写
  */
-const generateWithAI = () => {
+const isGeneratingAI = ref(false)
+
+const generateWithAI = async () => {
   showTools.value = false
-  // 这里可以调用AI服务
-  ElMessage.info('AI续写功能开发中')
+
+  if (!content.value.trim()) {
+    ElMessage.warning('请先写一些内容，AI 将根据上下文进行续写')
+    return
+  }
+
+  isGeneratingAI.value = true
+  try {
+    const context = content.value.slice(-500) // 取最后500字作为上下文
+    const prompt = `请根据以下小说内容，续写约200-300字的后续情节，保持风格和语调一致：\n\n${context}`
+    const result = await novelStore.generateContent(prompt)
+    if (result) {
+      content.value += '\n\n' + result
+      ElMessage.success('AI 续写完成')
+    }
+  } catch (error) {
+    console.error('AI续写失败:', error)
+    ElMessage.error('AI续写失败，请检查API配置')
+  } finally {
+    isGeneratingAI.value = false
+  }
 }
 
 /**
@@ -1092,6 +1157,38 @@ onMounted(() => {
 /* 对话框样式 */
 :deep(.mobile-dialog) {
   border-radius: 16px;
+}
+
+/* 模板列表 */
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.template-item {
+  padding: 12px 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.template-item:active {
+  background: #f5f7fa;
+}
+
+.template-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.template-preview {
+  font-size: 13px;
+  color: #909399;
+  line-height: 1.5;
 }
 
 /* 安全区域 */

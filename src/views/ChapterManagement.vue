@@ -267,6 +267,33 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 批量编辑对话框 -->
+    <el-dialog v-model="showBatchEditDialog" title="批量编辑章节" width="500px">
+      <el-form :model="batchEditForm" label-width="80px">
+        <el-form-item label="修改状态">
+          <el-select v-model="batchEditForm.status" placeholder="不修改则留空" clearable style="width: 100%;">
+            <el-option label="草稿" value="draft" />
+            <el-option label="写作中" value="writing" />
+            <el-option label="已完成" value="completed" />
+            <el-option label="已发布" value="published" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="添加标签">
+          <el-input
+            v-model="batchEditForm.tags"
+            placeholder="输入标签，用逗号分隔"
+          />
+        </el-form-item>
+        <p style="color: #909399; font-size: 13px; margin: 0;">
+          已选择 {{ selectedChapters.length }} 个章节
+        </p>
+      </el-form>
+      <template #footer>
+        <el-button @click="showBatchEditDialog = false">取消</el-button>
+        <el-button type="primary" @click="confirmBatchEdit">确认修改</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -541,15 +568,51 @@ const removeChapterTag = (index) => {
 }
 
 const sortChapters = () => {
-  ElMessage.info('章节排序功能开发中...')
+  if (chapters.value.length === 0) {
+    ElMessage.warning('暂无章节可排序')
+    return
+  }
+  // 按标题拼音排序
+  chapters.value.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'))
+  saveChaptersToNovel()
+  ElMessage.success('章节已按标题排序')
 }
+
+const showBatchEditDialog = ref(false)
+const batchEditForm = ref({
+  status: '',
+  tags: ''
+})
 
 const batchEdit = () => {
   if (selectedChapters.value.length === 0) {
     ElMessage.warning('请先选择要编辑的章节')
     return
   }
-  ElMessage.info('批量编辑功能开发中...')
+  batchEditForm.value = { status: '', tags: '' }
+  showBatchEditDialog.value = true
+}
+
+const confirmBatchEdit = () => {
+  const form = batchEditForm.value
+  let updatedCount = 0
+  chapters.value.forEach(chapter => {
+    if (selectedChapters.value.includes(chapter.id)) {
+      if (form.status) {
+        chapter.status = form.status
+      }
+      if (form.tags.trim()) {
+        const newTags = form.tags.split(/[,，]/).map(t => t.trim()).filter(Boolean)
+        const existingTags = chapter.tags || []
+        chapter.tags = [...new Set([...existingTags, ...newTags])]
+      }
+      updatedCount++
+    }
+  })
+  saveChaptersToNovel()
+  showBatchEditDialog.value = false
+  selectedChapters.value = []
+  ElMessage.success(`已批量更新 ${updatedCount} 个章节`)
 }
 
 // 生命周期

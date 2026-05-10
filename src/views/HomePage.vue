@@ -302,6 +302,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from '@/utils/i18n.js'
 import { ElMessage } from 'element-plus'
+import { STORAGE_KEYS } from '@/utils/constants.js'
 
 // Element Plus 图标
 import { 
@@ -478,40 +479,72 @@ function formatRelativeTime(date) {
  * 加载统计数据
  */
 async function loadStats() {
-  // 模拟数据，实际应从 store 或 API 获取
-  todayWords.value = 2580
-  streakDays.value = 15
-  totalWords.value = 156789
+  try {
+    const novelsRaw = localStorage.getItem(STORAGE_KEYS.NOVELS)
+    const novels = novelsRaw ? JSON.parse(novelsRaw) : []
+
+    // 今日字数：从所有小说的章节中计算今天修改的章节字数
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    let todayWordCount = 0
+    novels.forEach(novel => {
+      if (novel.chapterList) {
+        novel.chapterList.forEach(chapter => {
+          const updatedAt = new Date(chapter.updatedAt)
+          if (updatedAt >= today) {
+            todayWordCount += (chapter.wordCount || 0)
+          }
+        })
+      }
+    })
+    todayWords.value = todayWordCount
+
+    // 连续天数：从 gamification 数据中读取
+    const gamificationRaw = localStorage.getItem(STORAGE_KEYS.GAMIFICATION_DATA)
+    if (gamificationRaw) {
+      const gamification = JSON.parse(gamificationRaw)
+      streakDays.value = gamification.streakDays || gamification.currentStreak || 0
+    }
+
+    // 总字数：从所有小说的章节内容中计算
+    let total = 0
+    novels.forEach(novel => {
+      if (novel.chapterList) {
+        novel.chapterList.forEach(chapter => {
+          total += (chapter.wordCount || 0)
+        })
+      }
+    })
+    totalWords.value = total
+  } catch (error) {
+    console.error('加载统计数据失败:', error)
+  }
 }
 
 /**
  * 加载最近项目
  */
 async function loadRecentProjects() {
-  // 模拟数据，实际应从 store 或 API 获取
-  recentProjects.value = [
-    {
-      id: 1,
-      title: '星际迷途',
-      chapterCount: 45,
-      wordCount: 89234,
-      updatedAt: new Date(Date.now() - 3600000)
-    },
-    {
-      id: 2,
-      title: '都市修仙传',
-      chapterCount: 120,
-      wordCount: 245678,
-      updatedAt: new Date(Date.now() - 86400000)
-    },
-    {
-      id: 3,
-      title: '时光倒流',
-      chapterCount: 28,
-      wordCount: 56789,
-      updatedAt: new Date(Date.now() - 172800000)
-    }
-  ]
+  try {
+    const novelsRaw = localStorage.getItem(STORAGE_KEYS.NOVELS)
+    const novels = novelsRaw ? JSON.parse(novelsRaw) : []
+
+    // 按更新时间排序，取最近修改的5个
+    const sorted = novels
+      .map(novel => ({
+        id: novel.id,
+        title: novel.title,
+        chapterCount: (novel.chapterList || []).length,
+        wordCount: (novel.chapterList || []).reduce((sum, ch) => sum + (ch.wordCount || 0), 0),
+        updatedAt: new Date(novel.updatedAt)
+      }))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 5)
+
+    recentProjects.value = sorted
+  } catch (error) {
+    console.error('加载最近项目失败:', error)
+  }
 }
 
 // ============================================

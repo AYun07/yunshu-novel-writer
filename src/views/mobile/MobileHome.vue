@@ -248,7 +248,7 @@ import {
   User, Document, ArrowUp
 } from '@element-plus/icons-vue'
 import SyncStatus from '../../components/SyncStatus.vue'
-import database from '../../services/database.js'
+import { STORAGE_KEYS } from '../../utils/constants.js'
 
 // ==================== 路由和状态 ====================
 const router = useRouter()
@@ -449,33 +449,50 @@ const createProject = async () => {
 /**
  * 加载今日统计数据
  */
-const loadTodayStats = async () => {
+const loadTodayStats = () => {
   try {
-    // 获取今日写作会话
+    const novelsRaw = localStorage.getItem(STORAGE_KEYS.NOVELS)
+    const novels = novelsRaw ? JSON.parse(novelsRaw) : []
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const sessions = await database.db.writingSessions
-      .where('startTime')
-      .aboveOrEqual(today.toISOString())
-      .toArray()
+
+    let todayWords = 0
+    let todayChapters = 0
+
+    novels.forEach(novel => {
+      if (novel.chapterList) {
+        novel.chapterList.forEach(chapter => {
+          const updatedAt = new Date(chapter.updatedAt)
+          if (updatedAt >= today) {
+            todayWords += (chapter.wordCount || 0)
+            todayChapters++
+          }
+        })
+      }
+    })
 
     todayStats.value = {
-      words: sessions.reduce((sum, s) => sum + (s.wordCount || 0), 0),
-      duration: sessions.reduce((sum, s) => sum + (s.duration || 0), 0),
-      chapters: sessions.length
+      words: todayWords,
+      duration: 0,
+      chapters: todayChapters
     }
 
     // 获取昨日数据用于对比
     const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdaySessions = await database.db.writingSessions
-      .where('startTime')
-      .between(yesterday.toISOString(), today.toISOString())
-      .toArray()
-
-    yesterdayStats.value = {
-      words: yesterdaySessions.reduce((sum, s) => sum + (s.wordCount || 0), 0)
-    }
+    let yesterdayWords = 0
+    novels.forEach(novel => {
+      if (novel.chapterList) {
+        novel.chapterList.forEach(chapter => {
+          const updatedAt = new Date(chapter.updatedAt)
+          if (updatedAt >= yesterday && updatedAt < today) {
+            yesterdayWords += (chapter.wordCount || 0)
+          }
+        })
+      }
+    })
+    yesterdayStats.value = { words: yesterdayWords }
   } catch (error) {
     console.error('加载今日统计失败:', error)
   }
@@ -484,53 +501,15 @@ const loadTodayStats = async () => {
 /**
  * 加载连续写作天数
  */
-const loadStreakDays = async () => {
+const loadStreakDays = () => {
   try {
-    const sessions = await database.db.writingSessions
-      .orderBy('startTime')
-      .reverse()
-      .toArray()
-
-    if (sessions.length === 0) {
+    const gamificationRaw = localStorage.getItem(STORAGE_KEYS.GAMIFICATION_DATA)
+    if (gamificationRaw) {
+      const gamification = JSON.parse(gamificationRaw)
+      streakDays.value = gamification.streakDays || gamification.currentStreak || 0
+    } else {
       streakDays.value = 0
-      return
     }
-
-    let streak = 0
-    let currentDate = new Date()
-    currentDate.setHours(0, 0, 0, 0)
-
-    // 检查今天是否有写作
-    const todayStr = currentDate.toDateString()
-    const hasToday = sessions.some(s =>
-      new Date(s.startTime).toDateString() === todayStr
-    )
-
-    if (!hasToday) {
-      // 检查昨天是否有写作
-      const yesterday = new Date(currentDate)
-      yesterday.setDate(yesterday.getDate() - 1)
-      const yesterdayStr = yesterday.toDateString()
-      const hasYesterday = sessions.some(s =>
-        new Date(s.startTime).toDateString() === yesterdayStr
-      )
-      if (!hasYesterday) {
-        streakDays.value = 0
-        return
-      }
-    }
-
-    // 计算连续天数
-    const dateSet = new Set(sessions.map(s =>
-      new Date(s.startTime).toDateString()
-    ))
-
-    while (dateSet.has(currentDate.toDateString())) {
-      streak++
-      currentDate.setDate(currentDate.getDate() - 1)
-    }
-
-    streakDays.value = streak
   } catch (error) {
     console.error('加载连续天数失败:', error)
   }
@@ -539,26 +518,28 @@ const loadStreakDays = async () => {
 /**
  * 加载最近项目
  */
-const loadRecentProjects = async () => {
+const loadRecentProjects = () => {
   try {
-    const projects = await database.getProjects()
+    const novelsRaw = localStorage.getItem(STORAGE_KEYS.NOVELS)
+    const novels = novelsRaw ? JSON.parse(novelsRaw) : []
 
-    // 获取每个项目的字数统计
-    const projectsWithStats = await Promise.all(
-      projects.slice(0, 5).map(async (project) => {
-        const stats = await database.statistics.getProjectStats(project.id)
-        return {
-          ...project,
-          wordCount: stats.totalWords
-        }
-      })
-    )
+    const projects = novels
+      .map(novel => ({
+        id: novel.id,
+        name: novel.title,
+        genre: novel.genre || '',
+        wordCount: (novel.chapterList || []).reduce((sum, ch) => sum + (ch.wordCount || 0), 0),
+        targetWordCount: novel.targetWordCount || 100000,
+        status: novel.status || 'draft',
+        updatedAt: new Date(novel.updatedAt)
+      }))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 5)
 
-    recentProjects.value = projectsWithStats
+    recentProjects.value = projects
 
-    // 设置最后编辑的项目
-    if (projectsWithStats.length > 0) {
-      lastProject.value = projectsWithStats[0]
+    if (projects.length > 0) {
+      lastProject.value = projects[0]
     }
   } catch (error) {
     console.error('加载最近项目失败:', error)

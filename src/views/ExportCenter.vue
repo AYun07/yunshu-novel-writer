@@ -172,18 +172,32 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { exportToMarkdown, exportToDocx, exportToEpub, exportToPdf, batchExport, getExportHistory } from '../services/exportService.js'
 import { ElMessage } from 'element-plus'
 import { Document, Notebook, Reading, Download, Files } from '@element-plus/icons-vue'
+import { STORAGE_KEYS } from '../utils/constants.js'
 
 // ==================== 项目数据 ====================
 const selectedProjectId = ref('')
-const projectList = ref([
-  { id: 'proj1', name: '星辰大海', chapterCount: 42, wordCount: 156000 },
-  { id: 'proj2', name: '都市传说', chapterCount: 28, wordCount: 89000 },
-  { id: 'proj3', name: '江湖行', chapterCount: 65, wordCount: 320000 }
-])
+const projectList = ref([])
+
+// 从 localStorage 加载真实小说列表
+function loadProjectList() {
+  try {
+    const novelsRaw = localStorage.getItem(STORAGE_KEYS.NOVELS)
+    const novels = novelsRaw ? JSON.parse(novelsRaw) : []
+    projectList.value = novels.map(novel => ({
+      id: String(novel.id),
+      name: novel.title,
+      chapterCount: (novel.chapterList || []).length,
+      wordCount: (novel.chapterList || []).reduce((sum, ch) => sum + (ch.wordCount || 0), 0)
+    }))
+  } catch (error) {
+    console.error('加载项目列表失败:', error)
+    projectList.value = []
+  }
+}
 const maxChapters = computed(() => {
   const p = projectList.value.find(p => p.id === selectedProjectId.value)
   return p ? p.chapterCount : 100
@@ -383,16 +397,56 @@ function getFormatTagType(format) {
   return map[format] || ''
 }
 function buildMockProjectData() {
-  const proj = projectList.value.find(p => p.id === selectedProjectId.value)
-  return {
-    project: { name: proj?.name || '未命名作品', author: advancedOptions.authorInfo || '云书用户', description: '这是一部精彩的小说作品。' },
-    chapters: [
-      { title: '第一章 命运的起点', content: '清晨的阳光透过窗帘缝隙洒进房间，主角缓缓睁开了双眼。', summary: '故事开篇' },
-      { title: '第二章 暗流涌动', content: '城市的另一端，一场阴谋正在悄然酝酿。', summary: '冲突初现' },
-      { title: '第三章 意外相遇', content: '命运的齿轮开始转动，两个看似毫无关联的人在一座古老的图书馆中相遇了。', summary: '关键转折' }
-    ]
+  try {
+    const novelsRaw = localStorage.getItem(STORAGE_KEYS.NOVELS)
+    const novels = novelsRaw ? JSON.parse(novelsRaw) : []
+    const proj = projectList.value.find(p => p.id === selectedProjectId.value)
+
+    if (proj) {
+      // 找到选中的小说，使用其真实章节数据
+      const novel = novels.find(n => String(n.id) === selectedProjectId.value)
+      const chapters = (novel && novel.chapterList) ? novel.chapterList.map(ch => ({
+        title: ch.title,
+        content: ch.content || '',
+        summary: ch.summary || ''
+      })) : []
+
+      return {
+        project: {
+          name: proj.name,
+          author: advancedOptions.authorInfo || '云书用户',
+          description: (novel && novel.description) || ''
+        },
+        chapters
+      }
+    }
+
+    // 没有选中项目时，使用所有小说数据
+    const allChapters = novels.flatMap(novel =>
+      (novel.chapterList || []).map(ch => ({
+        title: ch.title,
+        content: ch.content || '',
+        summary: ch.summary || ''
+      }))
+    )
+
+    return {
+      project: { name: '全部作品', author: advancedOptions.authorInfo || '云书用户', description: '' },
+      chapters: allChapters
+    }
+  } catch (error) {
+    console.error('构建导出数据失败:', error)
+    return {
+      project: { name: '未命名作品', author: '云书用户', description: '' },
+      chapters: []
+    }
   }
 }
+
+// 组件挂载时加载项目列表
+onMounted(() => {
+  loadProjectList()
+})
 </script>
 
 <style scoped>

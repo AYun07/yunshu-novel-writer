@@ -20,6 +20,11 @@
 // 工具函数
 // ============================================================================
 
+import { DiffEngine } from './collaborationService.js'
+
+/** DiffEngine 实例，用于版本对比的真正 diff 计算 */
+const diffEngine = new DiffEngine()
+
 /**
  * 生成唯一ID
  * @returns {string} 唯一标识符
@@ -417,12 +422,19 @@ class UserManager {
   }
 
   /**
-   * 简单的密码哈希（实际项目应使用bcrypt等）
+   * 密码哈希（演示实现）
+   *
+   * TODO: 生产环境应使用 bcrypt / argon2 等安全哈希算法。
+   * 当前实现使用 btoa() 仅做 Base64 编码，并非真正的哈希，任何人都可以轻易还原明文密码。
+   * 推荐方案：
+   *   - 后端方案：bcrypt (npm i bcryptjs) / argon2，密码哈希应在服务端完成
+   *   - 如果必须在前端哈希：使用 Web Crypto API 的 PBKDF2 / SubtleCrypto
+   *
    * @param {string} password - 密码
    * @returns {string} 哈希后的密码
    */
   hashPassword(password) {
-    // 简单的Base64编码（仅作演示，实际项目应使用安全的哈希算法）
+    // [演示实现] 简单的Base64编码，生产环境必须替换为安全方案
     return btoa(password + '_yunshu_salt')
   }
 
@@ -852,12 +864,20 @@ class RealtimeCollaborationManager {
   }
 
   /**
-   * 连接到协作服务器（模拟）
+   * 连接到协作服务器（模拟实现）
+   *
+   * TODO: 生产环境需要真实的 WebSocket 服务器。
+   * 当前实现使用 setTimeout 模拟连接成功，不会建立任何真实的网络连接。
+   * 推荐方案：
+   *   - 自建 WebSocket 服务：Node.js + ws / Socket.IO
+   *   - 托管方案：Supabase Realtime / Firebase Realtime Database / Pusher
+   *   - 协议建议：使用 JSON-RPC 或自定义消息协议，支持心跳检测和断线重连
+   *
    * @param {string} serverUrl - 服务器地址
    * @returns {Promise<boolean>}
    */
   async connect(serverUrl = 'ws://localhost:8080') {
-    // 模拟WebSocket连接
+    // [模拟实现] 使用 setTimeout 假装连接成功，生产环境需替换为真实 WebSocket
     return new Promise((resolve) => {
       setTimeout(() => {
         this.connected = true
@@ -1367,12 +1387,11 @@ class VersionControlManager {
       throw new Error('版本不存在')
     }
 
-    // 简单的差异计算
     const content1 = v1.content
     const content2 = v2.content
 
-    const additions = Math.max(0, content2.length - content1.length)
-    const deletions = Math.max(0, content1.length - content2.length)
+    // 使用 DiffEngine 进行真正的 diff 计算（基于 Google diff-match-patch 算法）
+    const report = diffEngine.generateDiffReport(content1, content2)
 
     return {
       version1: {
@@ -1390,9 +1409,11 @@ class VersionControlManager {
         message: v2.message
       },
       diff: {
-        additions,
-        deletions,
-        similarity: content1.length > 0 ? Math.round((1 - (additions + deletions) / content1.length) * 100) : 100
+        additions: report.summary.insertions,
+        deletions: report.summary.deletions,
+        similarity: report.summary.similarity,
+        // 额外提供逐行 diff 详情，方便 UI 展示
+        lines: report.diffs
       }
     }
   }
