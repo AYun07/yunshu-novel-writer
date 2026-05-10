@@ -1,94 +1,63 @@
 <template>
   <!-- 更新提示弹窗 -->
-  <van-popup
-    v-model:show="visible"
-    position="center"
-    round
-    :closeable="!forceUpdate"
-    :close-on-click-overlay="!forceUpdate"
+  <el-dialog
+    v-model="visible"
+    :title="null"
+    :close-on-click-modal="!forceUpdate"
+    :close-on-press-escape="!forceUpdate"
+    :show-close="!forceUpdate"
+    width="360px"
+    align-center
     class="update-dialog"
   >
-    <div class="update-content">
-      <!-- 头部图标 -->
-      <div class="update-header">
-        <div class="update-icon">
-          <van-icon name="upgrade" size="40" color="#409eff" />
-        </div>
-        <h3 class="update-title">发现新版本</h3>
-        <span class="version-tag">v{{ latestVersion }}</span>
+    <!-- 头部 -->
+    <div class="update-header">
+      <div class="update-icon-circle">
+        <el-icon :size="32" color="#409eff"><Upload /></el-icon>
+      </div>
+      <h3 class="update-title">发现新版本</h3>
+      <el-tag type="primary" size="small" round>v{{ latestVersion }}</el-tag>
+    </div>
+
+    <!-- 更新内容 -->
+    <div class="update-body">
+      <div class="current-version">当前版本: v{{ currentVersion }}</div>
+      
+      <div class="release-notes">
+        <h4>更新内容:</h4>
+        <div class="notes-content" v-html="formattedReleaseNotes"></div>
       </div>
 
-      <!-- 更新内容 -->
-      <div class="update-body">
-        <div class="current-version">当前版本: v{{ currentVersion }}</div>
-        
-        <div class="release-notes">
-          <h4>更新内容:</h4>
-          <div class="notes-content" v-html="formattedReleaseNotes"></div>
-        </div>
-
-        <!-- 下载进度 -->
-        <div v-if="downloading" class="download-progress">
-          <van-progress
-            :percentage="downloadProgress"
-            :stroke-width="8"
-            color="#409eff"
-          />
-          <p class="progress-text">正在下载 {{ downloadProgress }}%</p>
-        </div>
-      </div>
-
-      <!-- 按钮组 -->
-      <div class="update-footer">
-        <template v-if="!downloading">
-          <van-button
-            v-if="!forceUpdate"
-            size="small"
-            plain
-            type="default"
-            @click="onLater"
-          >
-            稍后
-          </van-button>
-          <van-button
-            v-if="!forceUpdate"
-            size="small"
-            plain
-            type="default"
-            @click="onIgnore"
-          >
-            忽略
-          </van-button>
-          <van-button
-            size="small"
-            type="primary"
-            :loading="checking"
-            @click="onUpdate"
-          >
-            立即更新
-          </van-button>
-        </template>
-        <template v-else>
-          <van-button
-            size="small"
-            type="default"
-            disabled
-          >
-            下载中...
-          </van-button>
-        </template>
+      <!-- 下载进度 -->
+      <div v-if="downloading" class="download-progress">
+        <el-progress :percentage="downloadProgress" :stroke-width="8" />
+        <p class="progress-text">正在下载 {{ downloadProgress }}%</p>
       </div>
     </div>
-  </van-popup>
 
-  <!-- 强制更新遮罩 -->
-  <van-overlay v-if="forceUpdate && visible" :show="true" z-index="9999" />
+    <!-- 按钮组 -->
+    <template #footer>
+      <div class="update-footer">
+        <template v-if="!downloading">
+          <el-button v-if="!forceUpdate" size="small" @click="onLater">稍后</el-button>
+          <el-button v-if="!forceUpdate" size="small" @click="onIgnore">忽略</el-button>
+          <el-button size="small" type="primary" :loading="checking" @click="onUpdate">
+            立即更新
+          </el-button>
+        </template>
+        <template v-else>
+          <el-button size="small" disabled>下载中...</el-button>
+        </template>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
 import { computed, watch } from 'vue';
 import { useUpdate } from '@/services/updateService';
 import { marked } from 'marked';
+import { Upload } from '@element-plus/icons-vue';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -97,7 +66,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const {
-  state,
   checking,
   hasUpdate,
   downloading,
@@ -117,7 +85,6 @@ const visible = computed({
   set: (val) => emit('update:modelValue', val),
 });
 
-// 格式化发布说明（Markdown 转 HTML）
 const formattedReleaseNotes = computed(() => {
   if (!releaseNotes.value) return '暂无更新说明';
   try {
@@ -127,14 +94,10 @@ const formattedReleaseNotes = computed(() => {
   }
 });
 
-// 监听 hasUpdate 变化，自动显示弹窗
 watch(hasUpdate, (val) => {
-  if (val) {
-    visible.value = true;
-  }
+  if (val) visible.value = true;
 });
 
-// 立即更新
 async function onUpdate() {
   try {
     await startUpdate();
@@ -143,13 +106,11 @@ async function onUpdate() {
   }
 }
 
-// 稍后提醒
 function onLater() {
   remindLater();
   visible.value = false;
 }
 
-// 忽略此版本
 function onIgnore() {
   ignoreUpdate();
   visible.value = false;
@@ -157,21 +118,20 @@ function onIgnore() {
 </script>
 
 <style scoped>
-.update-dialog {
-  width: 85%;
-  max-width: 360px;
+.update-dialog :deep(.el-dialog__header) {
+  display: none;
 }
 
-.update-content {
-  padding: 20px;
+.update-dialog :deep(.el-dialog__body) {
+  padding: 0;
 }
 
 .update-header {
   text-align: center;
-  margin-bottom: 16px;
+  padding: 24px 20px 16px;
 }
 
-.update-icon {
+.update-icon-circle {
   width: 64px;
   height: 64px;
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
@@ -185,26 +145,17 @@ function onIgnore() {
 .update-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
-  margin: 0 0 4px;
-}
-
-.version-tag {
-  display: inline-block;
-  background: #409eff;
-  color: white;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+  color: #303133;
+  margin: 0 0 8px;
 }
 
 .update-body {
-  margin-bottom: 20px;
+  padding: 0 20px 20px;
 }
 
 .current-version {
   font-size: 13px;
-  color: #999;
+  color: #909399;
   text-align: center;
   margin-bottom: 12px;
 }
@@ -219,13 +170,13 @@ function onIgnore() {
 
 .release-notes h4 {
   font-size: 14px;
-  color: #666;
+  color: #606266;
   margin: 0 0 8px;
 }
 
 .notes-content {
   font-size: 13px;
-  color: #333;
+  color: #303133;
   line-height: 1.6;
 }
 
@@ -248,7 +199,7 @@ function onIgnore() {
 .progress-text {
   text-align: center;
   font-size: 13px;
-  color: #666;
+  color: #606266;
   margin: 8px 0 0;
 }
 
@@ -256,9 +207,5 @@ function onIgnore() {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.update-footer .van-button {
-  min-width: 70px;
 }
 </style>

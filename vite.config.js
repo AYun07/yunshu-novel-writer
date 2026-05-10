@@ -116,10 +116,10 @@ export default defineConfig(({ mode }) => {
       // 是否生成 source map（生产环境关闭以减小体积）
       sourcemap: !isProduction,
 
-      // 压缩配置
-      minify: 'esbuild',
+      // 压缩配置 - 使用 terser 避免 esbuild 变量名冲突导致运行时崩溃
+      minify: 'terser',
 
-      // Terser 压缩选项
+      // Terser 压缩选项（当 minify 设为 terser 时生效）
       terserOptions: {
         compress: {
           // 生产环境移除 console
@@ -218,28 +218,29 @@ export default defineConfig(({ mode }) => {
             }
 
             // 按功能模块分割业务代码
-            if (id.includes('/src/views/')) {
-              // 写作相关页面
-              if (id.includes('Writer.vue') ||
-                  id.includes('FocusMode.vue') ||
-                  id.includes('MasterCreation.vue')) {
-                return 'views-writer'
-              }
-              // 管理相关页面
-              if (id.includes('NovelManagement.vue') ||
-                  id.includes('ChapterManagement.vue') ||
-                  id.includes('ChapterGraph.vue')) {
-                return 'views-management'
-              }
-              // 分析相关页面
-              if (id.includes('BookAnalysis.vue') ||
-                  id.includes('TextAnalysis.vue') ||
-                  id.includes('StyleImitation.vue')) {
-                return 'views-analysis'
-              }
-              // 其他页面
-              return 'views-other'
-            }
+            // 注意：不分割 views，避免与 Vue 运行时产生循环依赖
+            // if (id.includes('/src/views/')) {
+            //   // 写作相关页面
+            //   if (id.includes('Writer.vue') ||
+            //       id.includes('FocusMode.vue') ||
+            //       id.includes('MasterCreation.vue')) {
+            //     return 'views-writer'
+            //   }
+            //   // 管理相关页面
+            //   if (id.includes('NovelManagement.vue') ||
+            //       id.includes('ChapterManagement.vue') ||
+            //       id.includes('ChapterGraph.vue')) {
+            //     return 'views-management'
+            //   }
+            //   // 分析相关页面
+            //   if (id.includes('BookAnalysis.vue') ||
+            //       id.includes('TextAnalysis.vue') ||
+            //       id.includes('StyleImitation.vue')) {
+            //     return 'views-analysis'
+            //   }
+            //   // 其他页面
+            //   return 'views-other'
+            // }
 
             // 服务层
             if (id.includes('/src/services/')) {

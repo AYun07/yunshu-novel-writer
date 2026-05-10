@@ -225,7 +225,7 @@ onMounted(async () => {
   deviceStore.detectDevice()
   
   // 监听键盘事件
-  if (window.Capacitor?.Plugins?.Keyboard) {
+  if (typeof window !== 'undefined' && window.Capacitor?.Plugins?.Keyboard) {
     window.Capacitor.Plugins.Keyboard.addListener('keyboardWillShow', (info) => {
       handleKeyboardShow(info.keyboardHeight)
     })
@@ -233,18 +233,22 @@ onMounted(async () => {
   }
   
   // 监听返回按钮（Android）
-  if (window.Capacitor?.Plugins?.App) {
+  if (typeof window !== 'undefined' && window.Capacitor?.Plugins?.App) {
     window.Capacitor.Plugins.App.addListener('backButton', handleBackButton)
   }
   
   // 监听窗口大小变化
-  window.addEventListener('resize', () => {
-    deviceStore.detectDevice()
-  })
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('resize', () => {
+      deviceStore.detectDevice()
+    })
+  }
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', deviceStore.detectDevice)
+  if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+    window.removeEventListener('resize', deviceStore.detectDevice)
+  }
 })
 </script>
 
