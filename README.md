@@ -5,16 +5,28 @@
 </p>
 
 <p align="center">
-  <strong>专业的AI小说创作平台 · 从短篇到百万字长篇 · 从入门到诺贝尔级文学</strong>
+  <strong>世界级AI文学创作平台 · 从短篇到百万字长篇 · 从入门到诺贝尔级文学</strong>
 </p>
 
 <p align="center">
   <a href="#功能特性">功能特性</a> •
-  <a href="#核心功能">核心功能</a> •
+  <a href="#平台支持">平台支持</a> •
   <a href="#快速开始">快速开始</a> •
-  <a href="#技术栈">技术栈</a> •
-  <a href="#更新日志">更新日志</a> •
+  <a href="#技术架构">技术架构</a> •
+  <a href="CHANGELOG.md">更新日志</a> •
   <a href="#开源协议">开源协议</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/AYun07/yunshu-novel-writer/releases">
+    <img src="https://img.shields.io/github/v/release/AYun07/yunshu-novel-writer?include_prereleases" alt="Version">
+  </a>
+  <a href="https://github.com/AYun07/yunshu-novel-writer/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/AYun07/yunshu-novel-writer" alt="License">
+  </a>
+  <a href="https://github.com/AYun07/yunshu-novel-writer/stargazers">
+    <img src="https://img.shields.io/github/stars/AYun07/yunshu-novel-writer" alt="Stars">
+  </a>
 </p>
 
 ---
@@ -22,96 +34,73 @@
 ## ✨ 功能特性
 
 ### 🏆 大师级文学创作
-- **文学大师风格库** - 内置15+种文学大师风格（莫言/余华/鲁迅/马尔克斯/海明威/卡夫卡等）
-- **文学技法引擎** - 10种高级文学技法（意识流/多视角/象征隐喻/五感写作/悬念钩子等）
-- **多轮精修系统** - 初稿→深度润色→终审评审，诺贝尔/茅盾文学奖评审标准
-- **创作类型模板** - 11种类型（玄幻/都市/言情/悬疑/科幻/严肃文学/诗歌/剧本等）
+- **30+文学大师风格库** - 莫言/余华/鲁迅/马尔克斯/海明威/村上春树/卡夫卡等
+- **深度叙事技法** - 意识流/多重视角/魔幻现实主义/极简主义/元小说
+- **5轮精修系统** - 结构优化→语言精炼→风格强化→细节打磨→终审评审
+- **文学质量评估** - 语言独创性/情感深度/叙事技巧/人物塑造/主题深度五维评分
 
-### 📚 长篇小说工坊
-- **原著结构分析** - 上传正版书籍，AI提取叙事结构/力量体系/角色原型/情节模式
-- **项目管理** - 卷/章两级结构，支持百万字级长篇项目管理
-- **角色工坊** - AI创建原创角色或手动添加，角色状态全程追踪
-- **世界观构建器** - AI自动生成原创世界观（力量体系/地图/势力/规则）
-- **批量章节生成** - 上下文连贯、自动摘要、一致性保持、断点续写
+### 📚 百万字长篇小说引擎
+- **智能上下文管理** - 自动摘要链、角色状态追踪、世界观一致性检查
+- **批量章节生成** - 整卷大纲生成、断点续传、不合格自动重写
+- **质量控制** - 每章生成后自动检查、人工审核队列
+- **进度追踪** - 热力图、每日统计、预计完成时间
 
-### 🎨 风格仿写
-- **风格分析** - 6大维度24项风格特征提取
-- **多文本融合** - 上传多本书籍，融合为统一风格
-- **风格微调** - 24项参数可手动调整
-- **四种仿写模式** - 全新创作/续写章节/内容改写/跨体裁仿写
-- **原创度自检** - 5维度AI评分，确保合法合规
+### 🎨 高级可视化
+- **索引卡片视图** - 拖拽排序、分组管理、导出大纲
+- **四视图编辑器** - 4种布局、多标签、同步滚动
+- **故事线甘特图** - 时间轴、里程碑、交叉点标记
+- **章节关系图谱** - VueFlow可视化、5种关系类型
 
-### ✍️ 创作工具
-- **专业编辑器** - 富文本编辑，支持Markdown
-- **提示词库** - 精心整理的创作模板
-- **语料库管理** - 个性化训练素材
-- **写作目标** - 进度跟踪，培养创作习惯
-- **Token统计** - API调用成本追踪
+### 📱 跨平台完美适配
+- **网页端** - PWA离线可用、后台同步、推送通知
+- **桌面端** - Electron原生体验、系统托盘、全局快捷键、自动更新
+- **移动端** - 触摸手势、底部导航、虚拟键盘适配、安全区域适配
 
-### 🎨 界面特色
-- **5种主题切换** - 默认蓝/暗夜黑/护眼绿/优雅紫/暖阳橙
-- **响应式设计** - 完美适配各种设备
-- **按需加载** - Element Plus按需导入，极致性能
+### 🔧 专业写作工具
+- **伏笔管理系统** - AI提取、追踪、回收提醒、时间线
+- **叙事结构建模** - 前提/故事线/主题/冲突/象征/角色深度
+- **文本质量分析** - 9种检测器、可读性评分、一键修复
+- **专注写作模式** - 打字机滚动、番茄钟、环境音效、6种主题
+- **游戏化激励** - 35个成就、20级等级、签到、热力图
+
+### 📤 多格式导出
+- **Markdown** - 标准格式，适合技术写作
+- **DOCX** - Word文档，适合出版投稿
+- **EPUB** - 电子书格式，适合分发阅读
+- **PDF** - 印刷品质，适合打印存档
 
 ---
 
-## 🔥 核心功能
+## 🖥️ 平台支持
 
-### 1. 大师创作
+| 平台 | 支持方式 | 特性 |
+|------|----------|------|
+| **网页端** | PWA | 离线可用、安装为App、后台同步、推送通知 |
+| **桌面端** | Electron | Windows/macOS/Linux、系统托盘、全局快捷键、自动更新 |
+| **移动端** | PWA | 触摸手势、底部导航、虚拟键盘适配、安全区域适配 |
 
-四步引导式创作流程：
+### 安装方式
 
-```
-选择类型 → 选择风格 → 文学技法 → 开始创作
-```
+#### 网页端
+直接访问部署地址，或安装为PWA：
+- Chrome: 地址栏点击"安装"图标
+- Safari: 分享 → 添加到主屏幕
+- Firefox: 地址栏点击"安装"图标
 
-- 支持11种创作类型（网络小说/严肃文学/诗歌/剧本等）
-- 15种文学大师风格可选
-- 10种高级文学技法可叠加
-- 三种精修模式（仅初稿/初稿+润色/完整精修）
-- 实时进度展示 + 终审评审报告
+#### 桌面端
+```bash
+# 开发模式
+pnpm electron:dev
 
-### 2. 长篇小说工坊
-
-专为百万字级长篇设计：
-
-```
-上传原著分析 → 构建世界观 → 创建角色 → 生成大纲 → 批量生成章节
-```
-
-- **原著结构分析**：提取叙事结构、力量体系、角色原型、情节模式
-- **原创世界观**：AI生成力量体系、地图区域、势力阵营
-- **角色管理**：AI创建或手动添加，追踪力量等级和状态
-- **卷大纲生成**：基于原著节奏模式生成每卷章节大纲
-- **批量章节生成**：自动保持上下文连贯，每章自动摘要
-- **项目持久化**：自动保存，支持导出/导入
-
-### 3. 风格仿写
-
-合法合规的智能仿写系统：
-
-```
-上传文本 → 风格分析 → 参数微调 → 选择模式 → 原创仿写 → 原创自检
+# 构建安装包
+pnpm electron:build        # 全平台
+pnpm electron:build:win    # Windows
+pnpm electron:build:mac    # macOS
+pnpm electron:build:linux  # Linux
 ```
 
-- 支持 TXT/Markdown 文件上传和多文件融合
-- 24项风格参数可手动微调
-- 四种仿写模式：全新创作/续写章节/内容改写/跨体裁仿写
-- 跨体裁支持8种目标体裁（现代诗/古体诗/散文/话剧/剧本/歌词等）
-- 原创度自检：5维度AI评分（原创度/风格一致/创意性/可读性/综合）
-- 风格档案保存/加载/导出/导入
-
-### 4. 小说管理
-
-完整的小说创作管理工具链：
-
-- 小说列表管理（创建/编辑/删除/导出）
-- 章节管理（大纲/内容/状态）
-- 提示词库（分类管理/导入导出）
-- 小说类型管理
-- 写作目标追踪
-- Token计费统计
-- 系统设置与数据备份
+#### 移动端
+访问部署地址，添加到主屏幕即可获得原生App体验。
 
 ---
 
@@ -138,12 +127,15 @@ pnpm run dev
 
 # 构建生产版本
 pnpm run build
+
+# 启动桌面端开发模式
+pnpm electron:dev
 ```
 
 ### 配置API
 
 1. 启动项目后，点击右上角「配置API」
-2. 选择API预设（OpenAI/DeepSeek/Claude）或输入自定义地址
+2. 选择API预设（OpenAI/DeepSeek/Claude/Gemini）或输入自定义地址
 3. 输入API密钥
 4. 选择默认模型
 5. 开始创作！
@@ -153,110 +145,177 @@ pnpm run build
 | 提供商 | 模型 | 说明 |
 |--------|------|------|
 | OpenAI | GPT-4o / GPT-4o Mini / GPT-4 Turbo / GPT-3.5 Turbo | 最新多模态 |
-| DeepSeek | DeepSeek V3 / DeepSeek R1 | 深度求索 |
+| DeepSeek | DeepSeek V3 / DeepSeek R1 | 深度求索，性价比高 |
 | Anthropic | Claude 3.5 Sonnet / Claude 3 Opus | 顶级性能 |
+| Google | Gemini 2.5 Pro | Google最新 |
+| 智谱 | GLM-4 Plus | 国产大模型 |
 | 其他 | 任意 OpenAI 兼容 API | 灵活扩展 |
 
 ---
 
-## 🛠️ 技术栈
+## 🏗️ 技术架构
+
+### 技术栈
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| Vue 3 | 3.3+ | 前端框架 |
-| Vite | 4.5+ | 构建工具（代码分割/按需加载） |
-| Element Plus | 2.4+ | UI组件库（按需导入） |
+| Vue 3 | 3.5+ | 前端框架（Composition API） |
+| Vite | 5+ | 构建工具（代码分割/按需加载） |
+| Element Plus | 2.4+ | UI组件库 |
 | Pinia | 2.1+ | 状态管理 |
 | Vue Router | 4.2+ | 路由管理 |
-| WangEditor | 5.1+ | 富文本编辑器 |
-| Marked | 9.1+ | Markdown渲染 |
+| Dexie | 3.2+ | IndexedDB封装 |
+| Electron | 30+ | 桌面端框架 |
 
----
-
-## 📦 项目结构
+### 项目结构
 
 ```
 yunshu-novel-writer/
-├── src/
-│   ├── components/          # 组件
-│   │   ├── ApiConfig.vue    # API配置组件
-│   │   └── writer/          # 写作相关组件
-│   ├── views/               # 页面视图
-│   │   ├── Dashboard.vue    # 主框架布局（含主题切换）
-│   │   ├── HomePage.vue     # 首页
-│   │   ├── MasterCreation.vue  # 大师创作
-│   │   ├── NovelWorkshop.vue   # 长篇小说工坊
-│   │   ├── StyleImitation.vue  # 风格仿写
-│   │   ├── Writer.vue       # 写作编辑器
-│   │   ├── NovelManagement.vue # 小说管理
-│   │   ├── ShortStory.vue   # 短文写作
-│   │   ├── BookAnalysis.vue # 拆书工具
-│   │   ├── PromptsLibrary.vue # 提示词库
-│   │   ├── ToolsLibrary.vue # 工具库
-│   │   ├── WritingGoals.vue # 写作目标
-│   │   ├── TokenBilling.vue # Token统计
-│   │   └── Settings.vue     # 系统设置
-│   ├── stores/
-│   │   └── novel.js         # 状态管理
-│   ├── services/
-│   │   ├── api.js           # API服务（流式生成/多模型）
-│   │   └── billing.js       # 计费服务
-│   ├── config/
-│   │   ├── masterStyles.js      # 文学大师风格库
-│   │   ├── literaryTechniques.js # 文学技法引擎
-│   │   ├── refinementSystem.js  # 多轮精修系统
-│   │   ├── genreTemplates.js    # 创作类型模板
-│   │   ├── styleImitation.js    # 风格仿写引擎
-│   │   ├── novelEngine.js       # 长篇小说引擎
-│   │   └── announcements.js     # 公告配置
-│   ├── router/
-│   │   └── index.js         # 路由配置
-│   ├── App.vue
-│   └── main.js
+├── electron/                  # Electron桌面端
+│   ├── main.js               # 主进程
+│   ├── preload.js            # 预加载脚本
+│   ├── tray.js               # 系统托盘
+│   ├── menu.js               # 原生菜单
+│   ├── store.js              # 持久化存储
+│   └── ipcHandlers.js        # IPC处理器
 ├── public/
-│   └── favicon.svg          # 云书图标
-├── vite.config.js
+│   ├── sw.js                 # Service Worker
+│   ├── manifest.json         # PWA配置
+│   └── offline.html          # 离线页面
+├── src/
+│   ├── components/           # 公共组件
+│   ├── composables/          # 组合式函数
+│   │   ├── usePlatform.js    # 平台检测
+│   │   ├── useResponsive.js  # 响应式布局
+│   │   ├── useTouch.js       # 触摸手势
+│   │   ├── usePWA.js         # PWA功能
+│   │   └── useElectron.js    # Electron功能
+│   ├── config/               # 配置文件
+│   │   ├── masterStyles.js   # 大师风格库
+│   │   ├── literaryTechniques.js # 文学技法
+│   │   ├── foreshadowingSystem.js # 伏笔系统
+│   │   ├── narrativeStructure.js # 叙事结构
+│   │   ├── textAnalysis.js   # 文本分析
+│   │   ├── focusMode.js      # 专注模式
+│   │   ├── gamification.js   # 游戏化
+│   │   └── writingTools.js   # 写作工具
+│   ├── layouts/              # 布局组件
+│   │   ├── MobileLayout.vue  # 移动端布局
+│   │   ├── DesktopLayout.vue # 桌面端布局
+│   │   └── ResponsiveLayout.vue # 响应式布局
+│   ├── locales/              # 国际化
+│   │   ├── zh-CN.js          # 中文
+│   │   ├── en-US.js          # 英文
+│   │   └── ja-JP.js          # 日文
+│   ├── services/             # 服务层
+│   │   ├── api.js            # API服务
+│   │   ├── database.js       # 数据库服务
+│   │   ├── exportService.js  # 导出服务
+│   │   ├── syncService.js    # 同步服务
+│   │   ├── vectorMemory.js   # 向量记忆
+│   │   ├── aiAgent.js        # AI Agent
+│   │   ├── aiOrchestrator.js # AI编排
+│   │   ├── smartTracking.js  # 智能追踪
+│   │   └── multiModelProvider.js # 多模型支持
+│   ├── stores/               # Pinia状态管理
+│   │   ├── novel.js          # 小说状态
+│   │   ├── apiConfig.js      # API配置
+│   │   ├── aiChat.js         # AI对话
+│   │   └── device.js         # 设备状态
+│   ├── utils/                # 工具函数
+│   │   ├── constants.js      # 常量定义
+│   │   ├── id.js             # ID生成
+│   │   ├── tokens.js         # Token估算
+│   │   ├── date.js           # 日期格式化
+│   │   ├── accessibility.js  # 无障碍
+│   │   ├── i18n.js           # 国际化
+│   │   ├── lazyLoad.js       # 懒加载
+│   │   ├── virtualScroll.js  # 虚拟滚动
+│   │   └── performance.js    # 性能监控
+│   ├── views/                # 页面视图
+│   │   ├── mobile/           # 移动端专用视图
+│   │   ├── Dashboard.vue     # 主框架
+│   │   ├── HomePage.vue      # 首页
+│   │   ├── MasterCreation.vue # 大师创作
+│   │   ├── LiteraryWorkshop.vue # 文学工坊
+│   │   ├── MegaNovelManager.vue # 百万字管理
+│   │   ├── IndexCards.vue    # 索引卡片
+│   │   ├── MultiViewEditor.vue # 四视图编辑器
+│   │   ├── ChapterGraph.vue  # 章节图谱
+│   │   ├── Foreshadowing.vue # 伏笔管理
+│   │   ├── NarrativeStructure.vue # 叙事结构
+│   │   ├── TextAnalysis.vue  # 质量分析
+│   │   ├── FocusMode.vue     # 专注模式
+│   │   ├── Gamification.vue  # 成就中心
+│   │   ├── IdeaBoard.vue     # 灵感工坊
+│   │   ├── ExportCenter.vue  # 导出中心
+│   │   ├── PluginManager.vue # 插件管理
+│   │   ├── CollaborationHub.vue # 协作中心
+│   │   ├── ReviewMode.vue    # 审阅模式
+│   │   └── ...               # 更多页面
+│   ├── App.vue
+│   ├── main.js
+│   └── style.css             # 全局样式
+├── CHANGELOG.md              # 更新日志
+├── README.md                 # 项目说明
+├── LICENSE                   # 开源协议
+├── vite.config.js            # Vite配置
 └── package.json
 ```
 
 ---
 
-## 📋 更新日志
+## 📋 功能清单
 
-### v1.5.0 - 长篇小说创作工坊
-- ✨ 长篇小说项目管理系统（卷/章两级结构）
-- ✨ 原著结构分析引擎（叙事结构/力量体系/角色原型/情节模式）
-- ✨ 角色工坊（AI创建/手动添加/状态追踪）
-- ✨ 世界观构建器（AI自动生成/区域/势力/力量体系）
-- ✨ 卷大纲AI生成 + 章节批量生成引擎
-- ✨ 项目保存/导出/导入
+### AI创作
+- [x] 大师创作（30+风格、10+技法、5轮润色）
+- [x] 风格仿写（24项参数、4种模式、原创度自检）
+- [x] 长篇工坊（百万字管理、批量生成、智能上下文）
+- [x] 短文写作（快速创作、多类型模板）
+- [x] 文学工坊（诺贝尔级创作、质量评估）
 
-### v1.4.0 - 风格仿写重大升级
-- ✨ 多文本风格融合
-- ✨ 风格参数微调面板（24项参数）
-- ✨ 风格档案管理（保存/加载/导出/导入）
-- ✨ 四种仿写模式（全新创作/续写章节/内容改写/跨体裁仿写）
-- ✨ 原创度自检（5维度AI评分）
+### 写作工具
+- [x] 专注模式（打字机滚动、番茄钟、环境音效）
+- [x] 质量分析（9种检测器、可读性评分、一键修复）
+- [x] 灵感工坊（想法板、片段库、写作热身）
+- [x] 索引卡片（拖拽排序、分组、导出）
+- [x] 四视图编辑器（多窗口、同步滚动）
 
-### v1.3.0 - 风格仿写
-- ✨ 风格分析引擎（6大维度24项特征提取）
-- ✨ 原创仿写生成（基于风格特征创作100%原创内容）
+### 项目管理
+- [x] 小说列表（创建、编辑、删除、导出）
+- [x] 章节管理（大纲、内容、状态）
+- [x] 百万字管理（卷/章结构、批量生成）
+- [x] 章节图谱（关系图、时间线、故事线）
+- [x] 写作编辑器（富文本、Markdown）
 
-### v1.2.0 - 大师创作UI
-- 🎨 四步引导式大师创作流程
-- 🎨 可视化风格/技法/类型选择
+### 叙事工程
+- [x] 伏笔管理（AI提取、追踪、回收提醒）
+- [x] 叙事结构（前提、故事线、主题、冲突、象征）
+- [x] 角色深度（33个心理问题、关系图、弧线）
 
-### v1.1.0 - 文学引擎
-- 🏆 15种文学大师风格库
-- 🔧 10种文学技法引擎
-- ✨ 三步精修系统
-- 📚 11种创作类型模板
+### 导出协作
+- [x] 导出中心（MD/DOCX/EPUB/PDF、模板、批量）
+- [x] 协作中心（团队管理、项目共享、版本历史）
+- [x] 审阅模式（批注、评分、沟通工具）
 
-### v1.0.0 - 初始版本
-- ☁️ 云书品牌建立
-- 🤖 AI创作核心功能
-- 🎨 5种主题切换
-- 🔧 自定义API配置
+### 扩展功能
+- [x] 插件系统（安装、配置、市场）
+- [x] 成就中心（35成就、20等级、签到、热力图）
+- [x] 提示词库（分类管理、导入导出）
+- [x] 工具库（写作辅助工具集）
+
+### 系统功能
+- [x] 写作目标（进度跟踪、习惯培养）
+- [x] Token统计（成本追踪、用量分析）
+- [x] 系统设置（主题、语言、备份）
+- [x] 数据导入导出（JSON备份恢复）
+
+---
+
+## 📚 文档
+
+- [更新日志](CHANGELOG.md) - 所有版本的详细更新记录
+- [Docker部署](docker-deploy.md) - Docker部署指南
 
 ---
 
@@ -274,6 +333,12 @@ yunshu-novel-writer/
 ## 🤝 参与贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 提交 Pull Request
 
 ---
 
