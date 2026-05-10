@@ -991,7 +991,7 @@ export const appInfo = {
 };
 
 // ============================================
-// 生物识别 API
+// 生物识别 API (暂不可用，缺少插件)
 // ============================================
 
 export const biometric = {
@@ -1000,23 +1000,10 @@ export const biometric = {
    * @returns {Promise<Object>}
    */
   async isAvailable() {
-    if (!isNative) {
-      return {
-        isAvailable: false,
-        biometryType: 'none',
-      };
-    }
-    
-    try {
-      const { BiometricAuth } = await safeImport('@capawesome/capacitor-biometric-auth');
-      const result = await BiometricAuth.isAvailable();
-      return result;
-    } catch (error) {
-      return {
-        isAvailable: false,
-        biometryType: 'none',
-      };
-    }
+    return {
+      isAvailable: false,
+      biometryType: 'none',
+    };
   },
   
   /**
@@ -1025,16 +1012,7 @@ export const biometric = {
    * @returns {Promise<boolean>}
    */
   async verify(options = {}) {
-    if (!isNative) return false;
-    
-    try {
-      const { BiometricAuth } = await safeImport('@capawesome/capacitor-biometric-auth');
-      const result = await BiometricAuth.verify(options);
-      return result.verified;
-    } catch (error) {
-      console.error('生物识别验证失败:', error);
-      return false;
-    }
+    return false;
   },
 };
 

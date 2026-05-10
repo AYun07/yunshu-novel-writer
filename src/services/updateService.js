@@ -12,6 +12,24 @@
 import { ref, computed } from 'vue';
 
 // ============================================
+// 动态导入辅助函数
+// ============================================
+
+/**
+ * 安全的动态导入
+ * 使用 @vite-ignore 避免 Rollup/Vite 在构建时尝试解析模块
+ * @param {string} mod - 模块路径
+ * @returns {Promise<any>}
+ */
+async function safeImport(mod) {
+  try {
+    return await import(/* @vite-ignore */ mod);
+  } catch (e) {
+    return null;
+  }
+}
+
+// ============================================
 // 配置
 // ============================================
 
