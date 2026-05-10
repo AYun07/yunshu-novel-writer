@@ -149,21 +149,14 @@
           ]
         }
       ],
-      "icon": "public/icon.ico",
-      "publisherName": "云书团队",
-      "verifyUpdateCodeSignature": false
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "public/icon.ico",
-      "uninstallerIcon": "public/icon.ico",
-      "installerHeaderIcon": "public/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "云书",
-      "include": "build/installer.nsh",
-      "license": "LICENSE"
+      "shortcutName": "云书"
     },
     "mac": {
       "target": [
@@ -182,12 +175,10 @@
           ]
         }
       ],
-      "icon": "public/icon.icns",
+      "icon": "build/icon.png",
       "category": "public.app-category.productivity",
       "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "gatekeeperAssess": false
     },
     "dmg": {
       "contents": [
@@ -220,21 +211,9 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "rpm",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "tar.gz",
-          "arch": [
-            "x64"
-          ]
         }
       ],
-      "icon": "public/icons",
+      "icon": "build",
       "category": "Office",
       "maintainer": "云书团队",
       "vendor": "云书团队",
