@@ -153,7 +153,7 @@
 
       <!-- 未分析时的提示 -->
       <div class="empty-result" v-else>
-        <el-empty description="输入文本并点击"开始分析"" :image-size="120" />
+        <el-empty description="输入文本并点击开始分析" :image-size="120" />
       </div>
     </div>
 
@@ -219,7 +219,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { InfoFilled, Promotion } from '@element-plus/icons-vue'
-import { analyzeText, quickAnalysis, analyzeWordFrequency, analyzeReadability } from '../config/textAnalysis.js'
+import { analyzeText, quickAnalysis, analyzeWordFrequency, calculateReadability as analyzeReadability } from '../config/textAnalysis.js'
 
 const inputText = ref('')
 const isAnalyzing = ref(false)

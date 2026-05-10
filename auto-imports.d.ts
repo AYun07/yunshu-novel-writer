@@ -11,6 +11,7 @@ declare global {
   const DEFAULT_LANGUAGE: typeof import('./src/utils/i18n.js')['DEFAULT_LANGUAGE']
   const EffectScope: typeof import('vue')['EffectScope']
   const ElMessage: typeof import('element-plus/es')['ElMessage']
+  const ElMessageBox: typeof import('element-plus/es')['ElMessageBox']
   const FocusManager: typeof import('./src/utils/accessibility.js')['FocusManager']
   const FocusTrap: typeof import('./src/utils/accessibility.js')['FocusTrap']
   const KeyboardNavigation: typeof import('./src/utils/accessibility.js')['KeyboardNavigation']

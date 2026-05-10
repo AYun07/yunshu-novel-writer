@@ -92,7 +92,7 @@ export const ANALYSIS_CONFIG = {
   // 段首缩进检查
   indentation: {
     enabled: true,
-    expectedSpaces: 2        // 期望的缩进空格数（全角空格）
+    expectedSpaces: 2,       // 期望的缩进空格数（全角空格）
     checkFirstParagraph: false // 是否检查第一段（通常不缩进）
   }
 }

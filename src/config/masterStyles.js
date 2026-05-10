@@ -142,7 +142,7 @@ export const masterStyles = {
     bestFor: ['长篇小说', '杂文', '思想性文学', '实验文学']
   },
 
-  jia pingwa: {
+  'jia pingwa': {
     id: 'jiapingwa',
     name: '贾平凹风格',
     category: '严肃文学',

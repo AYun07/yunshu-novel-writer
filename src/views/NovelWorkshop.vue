@@ -324,9 +324,9 @@ import {
   novelStructureAnalysisPrompt, createCharacterPrompt, buildWorldPrompt,
   generateVolumeOutlinePrompt, generateChapterPrompt, generateChapterSummaryPrompt,
   createNovelProject, createVolume, createChapter,
-  getProjects, saveProject, deleteProject as deleteProjectFn, exportProject,
-  extractStyleSample, validateUploadFile, readTextFile
+  getProjects, saveProject, deleteProject as deleteProjectFn, exportProject
 } from '../config/novelEngine.js'
+import { extractStyleSample, validateUploadFile, readTextFile } from '../config/styleImitation.js'
 
 const novelStore = useNovelStore()
 

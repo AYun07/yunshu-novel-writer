@@ -69,7 +69,7 @@
       <el-button-group v-if="selectedIds.length > 0">
         <el-button size="small" @click="handleBatchResolve">批量标记已回收</el-button>
         <el-button size="small" type="danger" @click="handleBatchDelete">批量删除</el-button>
-      </el-button>
+      </el-button-group>
       <el-button size="small" @click="showTimeline = !showTimeline">
         {{ showTimeline ? '列表视图' : '时间线视图' }}
       </el-button>

@@ -49,7 +49,7 @@
           <template #title>质量分析</template>
         </el-menu-item>
         <el-menu-item index="/ideas">
-          <el-icon><Lightbulb /></el-icon>
+          <el-icon><Sunny /></el-icon>
           <template #title>灵感工坊</template>
         </el-menu-item>
         <el-menu-item index="/cards">
@@ -276,7 +276,7 @@ import {
   House, Document, ChatLineSquare, Collection, Notebook, Aim,
   CreditCard, Setting, Key, Tools, EditPen, DataAnalysis,
   Expand, Fold, Brush, MagicStick, Search, Download, User,
-  Monitor, Lightbulb, Trophy, Opportunity, Memo, Files, Edit,
+  Monitor, Sunny, Trophy, Opportunity, Memo, Files, Edit,
   Share, Connection, SetUp, Reading, Postcard, Grid, View, UserFilled
 } from '@element-plus/icons-vue'
 import ApiConfig from '@/components/ApiConfig.vue'
@@ -362,7 +362,7 @@ const commands = [
   { name: '短文写作', path: '/short-story', desc: '快速短文创作', icon: 'Memo' },
   { name: '专注模式', path: '/focus', desc: '无干扰沉浸写作', icon: 'Monitor', shortcut: 'F11' },
   { name: '质量分析', path: '/analysis', desc: '文本质量检测与评分', icon: 'DataAnalysis' },
-  { name: '灵感工坊', path: '/ideas', desc: '想法板、片段库、写作热身', icon: 'Lightbulb' },
+  { name: '灵感工坊', path: '/ideas', desc: '想法板、片段库、写作热身', icon: 'Sunny' },
   { name: '索引卡片', path: '/cards', desc: '卡片式内容组织', icon: 'Postcard' },
   { name: '四视图编辑器', path: '/multi-view', desc: '多视图同步编辑', icon: 'Grid' },
   { name: '小说列表', path: '/novels', desc: '管理所有小说项目', icon: 'Document' },

@@ -215,7 +215,8 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { collaborationService } from '../services/collaborationService.js'
+import CollaborationService from '../services/collaborationService.js'
+const collaborationService = new CollaborationService()
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import { STORAGE_KEYS } from '../utils/constants.js'

@@ -33,7 +33,7 @@
       <!-- 连续写作天数 -->
       <div class="streak-section">
         <div class="streak-icon">
-          <el-icon><FireIcon /></el-icon>
+          <el-icon><Aim /></el-icon>
         </div>
         <div class="streak-info">
           <span class="streak-count">{{ streakDays }}天</span>
@@ -135,7 +135,7 @@
 
         <div class="setting-item" @click="showLanguageSettings = true">
           <div class="setting-icon">
-            <el-icon><Globe /></el-icon>
+            <el-icon><Place /></el-icon>
           </div>
           <div class="setting-content">
             <span class="setting-name">语言切换</span>
@@ -345,9 +345,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  ArrowLeft, Setting, UserFilled, FireIcon as Fire,
+  ArrowLeft, Setting, UserFilled, Aim as Fire,
   Document, Timer, Collection, Reading, ArrowRight,
-  CircleCheck, Brush, Globe, Connection, Download,
+  CircleCheck, Brush, Place, Connection, Download,
   InfoFilled, Check, Refresh, Clock, House, Folder,
   Plus, Edit, User, Trophy, Star, Medal, FirstAidKit
 } from '@element-plus/icons-vue'

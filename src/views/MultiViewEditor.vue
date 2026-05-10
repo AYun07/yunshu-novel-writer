@@ -251,14 +251,14 @@
         <el-icon><CopyDocument /></el-icon> 复制
       </div>
       <div class="context-menu-item" @click="handleContextAction('cut')">
-        <el-icon><Scissors /></el-icon> 剪切
+        <el-icon><EditPen /></el-icon> 剪切
       </div>
       <div class="context-menu-item" @click="handleContextAction('paste')">
         <el-icon><DocumentCopy /></el-icon> 粘贴
       </div>
       <div class="context-menu-divider"></div>
       <div class="context-menu-item" @click="handleContextAction('selectAll')">
-        <el-icon><SelectAll /></el-icon> 全选
+        <el-icon><Select /></el-icon> 全选
       </div>
     </div>
   </div>
@@ -282,7 +282,7 @@ import {
   Grid, ArrowDown, Tickets, More, FullScreen, Connection,
   DocumentChecked, FolderOpened, Switch, Plus, Close, Document,
   Clock, RefreshLeft, RefreshRight, Search, CopyDocument,
-  Scissors, DocumentCopy, SelectAll
+  EditPen, DocumentCopy, Select
 } from '@element-plus/icons-vue'
 
 // ==================== 布局配置 ====================

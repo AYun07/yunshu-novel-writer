@@ -284,9 +284,9 @@ import { ElMessage } from 'element-plus'
 import { Plus, MagicStick } from '@element-plus/icons-vue'
 import {
   buildNarrativeAnalysisPrompt,
-  CHARACTER_QUESTIONS,
-  RELATIONSHIP_TYPES,
-  ARC_TYPES,
+  CHARACTER_PSYCHOLOGY_QUESTIONS as CHARACTER_QUESTIONS,
+  CHARACTER_RELATIONSHIP_TYPES as RELATIONSHIP_TYPES,
+  CHARACTER_ARC_TYPES as ARC_TYPES,
   STORY_TEMPLATES
 } from '../config/narrativeStructure.js'
 import { useNovelStore } from '../stores/novel.js'

@@ -236,9 +236,7 @@ import {
   Promotion, EditPen, Timer, CircleCheckFilled,
   ChatLineSquare, Trophy
 } from '@element-plus/icons-vue'
-import {
-  GamificationSystem, ACHIEVEMENTS, LEVELS, MOTIVATIONAL_QUOTES
-} from '../config/gamification.js'
+import gamificationSystem from '../config/gamification.js'
 import {
   achievements as achievementDefs,
   levelDefinitions,
@@ -250,7 +248,7 @@ import {
 } from '../config/gamification.js'
 
 // ========== 游戏化系统 ==========
-const system = new GamificationSystem()
+const system = gamificationSystem
 
 // ========== 响应式数据 ==========
 const achievementTab = ref('all')

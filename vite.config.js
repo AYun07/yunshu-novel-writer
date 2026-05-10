@@ -113,7 +113,7 @@ export default defineConfig(({ mode }) => {
       sourcemap: !isProduction,
 
       // 压缩配置
-      minify: isProduction ? 'terser' : 'esbuild',
+      minify: 'esbuild',
 
       // Terser 压缩选项
       terserOptions: {

@@ -183,12 +183,12 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } 
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Setting, Close, Microphone } from '@element-plus/icons-vue'
-import { FocusModeManager, FOCUS_THEMES, AMBIENT_SOUNDS } from '../config/focusMode.js'
+import { createFocusModeManager, focusModeConfig } from '../config/focusMode.js'
 
 const router = useRouter()
 
 // ========== 专注模式管理器 ==========
-const manager = new FocusModeManager()
+const manager = createFocusModeManager()
 const config = reactive(manager.config)
 
 // ========== 状态 ==========

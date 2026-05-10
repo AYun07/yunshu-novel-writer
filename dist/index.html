@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <!-- ============================================ -->
+    <!-- 基础 Meta 标签 -->
+    <!-- ============================================ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- ============================================ -->
+    <!-- SEO Meta 标签 -->
+    <!-- ============================================ -->
+    <title>云书 - AI智能小说创作平台</title>
+    <meta name="description" content="云书 - 专业的AI小说创作工具，支持多种AI模型，提供大纲生成、章节创作、角色设定等一站式写作服务" />
+    <meta name="keywords" content="AI写作,小说创作,智能写作,小说生成,AI小说,创作工具,写作助手,云书" />
+    <meta name="author" content="云书团队" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- ============================================ -->
+    <!-- PWA 相关 Meta 标签 -->
+    <!-- ============================================ -->
+    <!-- 主题色（适配5种主题） -->
+    <meta name="theme-color" content="#409eff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)" />
+    
+    <!-- iOS Safari PWA 支持 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="云书" />
+    
+    <!-- Microsoft PWA 支持 -->
+    <meta name="msapplication-TileColor" content="#409eff" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- Android Chrome PWA 支持 -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- ============================================ -->
+    <!-- Open Graph / 社交分享 -->
+    <!-- ============================================ -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="云书 - AI智能小说创作平台" />
+    <meta property="og:description" content="专业的AI小说创作工具，支持多种AI模型，提供大纲生成、章节创作、角色设定等一站式写作服务" />
+    <meta property="og:image" content="/icons/og-image.png" />
+    <meta property="og:url" content="https://yunshu.app" />
+    <meta property="og:site_name" content="云书" />
+    <meta property="og:locale" content="zh_CN" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="云书 - AI智能小说创作平台" />
+    <meta name="twitter:description" content="专业的AI小说创作工具，支持多种AI模型，提供大纲生成、章节创作、角色设定等一站式写作服务" />
+    <meta name="twitter:image" content="/icons/twitter-image.png" />
+    
+    <!-- ============================================ -->
+    <!-- 图标配置 -->
+    <!-- ============================================ -->
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
+    
+    <!-- Microsoft Tile Icon -->
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+    
+    <!-- ============================================ -->
+    <!-- PWA Manifest -->
+    <!-- ============================================ -->
+    <link rel="manifest" href="./manifest.json" />
+    
+    <!-- ============================================ -->
+    <!-- 预连接关键域名（优化网络请求） -->
+    <!-- ============================================ -->
+    <!-- 如果有 API 服务器，请添加预连接 -->
+    <!-- <link rel="preconnect" href="https://api.yunshu.app" /> -->
+    <!-- <link rel="dns-prefetch" href="https://api.yunshu.app" /> -->
+    
+    <!-- CDN 预连接（如果使用 CDN） -->
+    <!-- <link rel="preconnect" href="https://cdn.yunshu.app" crossorigin /> -->
+    
+    <!-- ============================================ -->
+    <!-- 预加载关键资源 -->
+    <!-- ============================================ -->
+    <!-- 预加载关键 CSS（如果有关键 CSS） -->
+    <!-- <link rel="preload" as="style" href="/assets/critical.css" /> -->
+    
+    <!-- 预加载关键字体 -->
+    <!-- <link rel="preload" as="font" href="/fonts/inter-var.woff2" type="font/woff2" crossorigin /> -->
+    
+    <!-- ============================================ -->
+    <!-- 性能优化 -->
+    <!-- ============================================ -->
+    <!-- DNS 预解析 -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+    
+    <!-- ============================================ -->
+    <!-- 安全相关 -->
+    <!-- ============================================ -->
+    <!-- 内容安全策略（根据需要调整） -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.yunshu.app;" /> -->
+    
+    <!-- ============================================ -->
+    <!-- 其他优化 -->
+    <!-- ============================================ -->
+    <!-- 禁止自动识别电话号码 -->
+    <meta name="format-detection" content="telephone=no, email=no, address=no" />
+    
+    <!-- iOS 添加到主屏幕后的启动画面 -->
+    <meta name="apple-touch-startup-image" href="/icons/splash.png" />
+    
+    <!-- ============================================ -->
+    <!-- 结构化数据（JSON-LD） -->
+    <!-- ============================================ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "云书",
+      "description": "AI智能小说创作平台 - 专业的AI小说创作工具",
+      "url": "https://yunshu.app",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "CNY"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "云书团队"
+      }
+    }
+    </script>
+    
+    <!-- ============================================ -->
+    <!-- 内联关键 CSS（防止白屏闪烁） -->
+    <!-- ============================================ -->
+    <style>
+      /* 基础重置 */
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      
+      /* 防止白屏闪烁 */
+      html, body {
+        width: 100%;
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #f5f7fa;
+      }
+      
+      /* 应用容器 */
+      #app {
+        width: 100%;
+        height: 100%;
+      }
+      
+      /* 加载动画 */
+      .app-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      
+      .app-loading-logo {
+        font-size: 48px;
+        margin-bottom: 20px;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      
+      .app-loading-text {
+        color: white;
+        font-size: 24px;
+        font-weight: 500;
+        margin-bottom: 30px;
+      }
+      
+      .app-loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+      
+      /* 暗色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        html, body {
+          background-color: #1a1a2e;
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/js/index-165e5a6c.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/js/dexie-1af75b14.js">
+    <link rel="modulepreload" crossorigin href="./assets/js/vendor-2e17079f.js">
+    <link rel="modulepreload" crossorigin href="./assets/js/vue-vendor-b812387e.js">
+    <link rel="modulepreload" crossorigin href="./assets/js/vueuse-2c51fecc.js">
+    <link rel="modulepreload" crossorigin href="./assets/js/element-plus-d9f98170.js">
+    <link rel="modulepreload" crossorigin href="./assets/js/config-4b900e2c.js">
+    <link rel="modulepreload" crossorigin href="./assets/js/document-1dc07ee0.js">
+    <link rel="modulepreload" crossorigin href="./assets/js/services-e3bf54ba.js">
+    <link rel="modulepreload" crossorigin href="./assets/js/components-30badcc3.js">
+    <link rel="stylesheet" href="./assets/css/element-plus-04ea028d.css">
+    <link rel="stylesheet" href="./assets/css/components-1c8bfe63.css">
+    <link rel="stylesheet" href="./assets/css/index-1b08cd3d.css">
+  </head>
+  <body>
+    <!-- 应用根容器 -->
+    <div id="app">
+      <!-- 初始加载动画（在 Vue 应用加载前显示） -->
+      <div class="app-loading">
+        <div class="app-loading-logo">📚</div>
+        <div class="app-loading-text">云书</div>
+        <div class="app-loading-spinner"></div>
+      </div>
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- 主应用脚本 -->
+    <!-- ============================================ -->
+    
+    
+    <!-- ============================================ -->
+    <!-- Service Worker 注册（PWA 离线支持） -->
+    <!-- ============================================ -->
+    <script>
+      // 仅在生产环境且支持 Service Worker 时注册
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+          try {
+            // 注册 Service Worker
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+              scope: '/'
+            });
+            
+            console.log('[PWA] Service Worker 注册成功:', registration.scope);
+            
+            // 监听更新
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // 新版本可用，提示用户刷新
+                  console.log('[PWA] 新版本可用，请刷新页面');
+                  
+                  // 可以在这里显示更新提示
+                  if (confirm('发现新版本，是否立即更新？')) {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+            
+            // 监听 Service Worker 消息
+            navigator.serviceWorker.addEventListener('message', (event) => {
+              const { type, data } = event.data;
+              
+              switch (type) {
+                case 'SW_UPDATED':
+                  console.log('[PWA] Service Worker 已更新到版本:', data?.version);
+                  break;
+                  
+                case 'SYNC_SUCCESS':
+                  console.log('[PWA] 离线数据同步成功:', data);
+                  break;
+              }
+            });
+            
+          } catch (error) {
+            console.error('[PWA] Service Worker 注册失败:', error);
+          }
+        });
+      }
+    </script>
+    
+    <!-- ============================================ -->
+    <!-- 性能监控初始化 -->
+    <!-- ============================================ -->
+    <script>
+      // 记录页面加载开始时间
+      window.__PAGE_START_TIME__ = Date.now();
+      
+      // 页面可见性变化监控
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          console.log('[性能] 页面变为可见');
+        }
+      });
+    </script>
+  </body>
+</html>

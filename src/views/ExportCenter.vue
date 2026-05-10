@@ -173,7 +173,8 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { exportToMarkdown, exportToDocx, exportToEpub, exportToPdf, batchExport, getExportHistory } from '../services/exportService.js'
+import exportService from '../services/exportService.js'
+const { exportToMarkdown, exportToDocx, exportToEpub, exportToPdf, batchExport, getExportHistory } = exportService
 import { ElMessage } from 'element-plus'
 import { Document, Notebook, Reading, Download, Files } from '@element-plus/icons-vue'
 import { STORAGE_KEYS } from '../utils/constants.js'
