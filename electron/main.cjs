@@ -572,10 +572,10 @@ function unregisterAllShortcuts() {
  * 初始化自动更新
  */
 function initAutoUpdater() {
-  // 配置自动更新
+  // 配置自动更新 - 全自动静默模式
   autoUpdater.logger = console;
-  autoUpdater.autoDownload = false; // 不自动下载，提示用户
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoDownload = true; // 自动下载，无需用户确认
+  autoUpdater.autoInstallOnAppQuit = false; // 下载完成后立即提示安装
 
   // 检查更新事件
   autoUpdater.on('checking-for-update', () => {
@@ -585,28 +585,20 @@ function initAutoUpdater() {
     }
   });
 
-  // 有可用更新
+  // 有可用更新 - 自动下载，静默处理
   autoUpdater.on('update-available', (info) => {
-    console.log('[AutoUpdater] 发现新版本:', info.version);
+    console.log('[AutoUpdater] 发现新版本，开始自动下载:', info.version);
 
     if (mainWindow) {
       mainWindow.webContents.send('update-available', info);
+      // 显示静默通知
+      mainWindow.webContents.send('update-message', {
+        type: 'info',
+        message: `正在下载更新 ${info.version}...`,
+        duration: 3000
+      });
     }
-
-    // 显示更新对话框
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: '发现新版本',
-      message: `云书 ${info.version} 现已可用`,
-      detail: `当前版本: ${app.getVersion()}\n新版本: ${info.version}\n\n是否立即下载更新？`,
-      buttons: ['立即下载', '稍后提醒'],
-      defaultId: 0,
-      cancelId: 1
-    }).then((result) => {
-      if (result.response === 0) {
-        autoUpdater.downloadUpdate();
-      }
-    });
+    // 自动下载已开始（autoDownload = true）
   });
 
   // 没有可用更新
@@ -627,28 +619,24 @@ function initAutoUpdater() {
     }
   });
 
-  // 更新下载完成
+  // 更新下载完成 - 自动安装
   autoUpdater.on('update-downloaded', (info) => {
-    console.log('[AutoUpdater] 更新下载完成');
+    console.log('[AutoUpdater] 更新下载完成，准备自动安装');
 
     if (mainWindow) {
       mainWindow.webContents.send('update-downloaded', info);
+      // 显示即将重启通知
+      mainWindow.webContents.send('update-message', {
+        type: 'success',
+        message: `更新 ${info.version} 已下载，应用将在3秒后自动重启...`,
+        duration: 3000
+      });
     }
 
-    // 显示安装对话框
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: '更新已就绪',
-      message: '新版本已下载完成',
-      detail: '更新将在下次启动时自动安装。是否立即重启应用？',
-      buttons: ['立即重启', '稍后重启'],
-      defaultId: 0,
-      cancelId: 1
-    }).then((result) => {
-      if (result.response === 0) {
-        autoUpdater.quitAndInstall();
-      }
-    });
+    // 延迟3秒后自动重启安装
+    setTimeout(() => {
+      autoUpdater.quitAndInstall(false, true);
+    }, 3000);
   });
 
   // 更新错误

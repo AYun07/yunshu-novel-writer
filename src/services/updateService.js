@@ -471,6 +471,15 @@ async function checkUpdate(options = {}) {
       forceUpdate: compareVersion(latestVersion, currentVersion) >= 1,
     };
 
+    // Android 平台：全自动下载并安装
+    if (isAndroid() && downloadUrl) {
+      console.log('[Update] Android 平台检测到更新，开始自动下载安装');
+      // 延迟3秒让用户看到更新提示，然后开始下载
+      setTimeout(() => {
+        startUpdate();
+      }, 3000);
+    }
+
     return true;
   } catch (error) {
     updateState.value.checking = false;

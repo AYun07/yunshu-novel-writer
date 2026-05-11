@@ -225,6 +225,9 @@
         </slot>
       </footer>
     </main>
+
+    <!-- 更新对话框 -->
+    <UpdateDialog />
   </div>
 </template>
 
@@ -258,6 +261,7 @@ import {
   Crop,
 } from '@element-plus/icons-vue';
 import { useResponsive } from '@/composables/useResponsive.js';
+import UpdateDialog from '@/components/UpdateDialog.vue';
 
 // ============================================
 // Props 定义

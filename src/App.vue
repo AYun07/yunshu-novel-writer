@@ -33,11 +33,13 @@ import SyncToast from './components/SyncToast.vue'
 import OfflineBanner from './components/OfflineBanner.vue'
 import { useDeviceStore } from './stores/device.js'
 import { useOfflineStatus } from './composables/useSync.js'
+import { useUpdate } from './services/updateService.js'
 
 // ==================== 路由和状态 ====================
 const route = useRoute()
 const deviceStore = useDeviceStore()
 const { isOffline } = useOfflineStatus()
+const { checkUpdate } = useUpdate()
 
 // ==================== 响应式数据 ====================
 const windowWidth = ref(1024) // 默认值，在onMounted中更新
@@ -151,6 +153,12 @@ onMounted(() => {
 
   // 初始化同步服务
   initSyncService()
+
+  // 延迟5秒后检查更新（避免影响应用启动速度）
+  setTimeout(() => {
+    console.log('[App] 开始检查应用更新...')
+    checkUpdate()
+  }, 5000)
 })
 
 onUnmounted(() => {
