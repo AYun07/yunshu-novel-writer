@@ -5,7 +5,8 @@
  */
 
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageBreak } from 'docx'
-import jsPDF from 'jspdf'
+// jsPDF 已移除，改用浏览器打印 API 支持中文 PDF 导出
+// import jsPDF from 'jspdf'
 
 // epub-gen-memory 使用动态导入以避免 ESM 兼容性问题
 let EPub = null
@@ -495,135 +496,83 @@ function generateEpubCss(templateId) {
 
 /**
  * 导出为 PDF 格式
- * 使用 jsPDF 生成 PDF 文件，支持中文
- * 注意：jsPDF 原生不支持中文，这里使用基础 ASCII 输出
- * 如需完整中文支持，建议配合 html2canvas 或 pdfmake
+ * 使用浏览器打印 API 生成 PDF，完美支持中文
  * @param {object} projectData - 项目数据
  * @param {string} [templateId='publishing'] - 模板ID
  * @returns {Promise<Blob>} PDF 文件 Blob
  */
 async function exportToPdf(projectData, templateId = 'publishing') {
-  const template = getTemplate(templateId)
-  const style = template.pdf
   const { project, chapters } = projectData
 
-  // 创建 PDF 文档（A4 尺寸）
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'pt',
-    format: 'a4'
+  // 构建 HTML 内容
+  const chaptersHtml = chapters.map((chapter, i) => `
+    <div class="chapter" style="page-break-before: ${i > 0 ? 'always' : 'auto'}">
+      <h2 style="text-align:center;font-size:22pt;margin-bottom:20pt;color:#303133;">${escapeHtml(chapter.title || `第${i + 1}章`)}</h2>
+      ${chapter.summary ? `<p style="font-size:11pt;color:#909399;margin-bottom:16px;text-indent:2em;">${escapeHtml(chapter.summary)}</p>` : ''}
+      <div style="font-size:12pt;line-height:1.8;color:#303133;">
+        ${chapter.content ? chapter.content.split(/\n+/).map(p => `<p style="text-indent:2em;margin-bottom:8px;">${escapeHtml(p)}</p>`).join('') : '<p style="color:#909399;text-align:center;">（暂无内容）</p>'}
+      </div>
+    </div>
+  `).join('')
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 2.54cm; }
+  body { font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'SimSun', serif; color: #303133; }
+  .cover { text-align: center; padding-top: 35vh; page-break-after: always; }
+  .cover h1 { font-size: 32pt; margin-bottom: 16pt; }
+  .cover .author { font-size: 14pt; color: #606266; }
+  .intro { page-break-after: always; }
+  .intro h2 { font-size: 18pt; margin-bottom: 12pt; }
+  .intro p { font-size: 12pt; line-height: 1.8; text-indent: 2em; }
+  .chapter h2 { font-size: 18pt; margin-bottom: 16pt; }
+</style></head><body>
+  <div class="cover">
+    <h1>${escapeHtml(project.name || '云书作品')}</h1>
+    ${project.author ? `<div class="author">${escapeHtml(project.author)}</div>` : ''}
+  </div>
+  ${project.description ? `<div class="intro"><h2>简介</h2><p>${escapeHtml(project.description)}</p></div>` : ''}
+  ${chaptersHtml}
+</body></html>`
+
+  // 使用隐藏 iframe 渲染 HTML 并打印为 PDF
+  return new Promise((resolve, reject) => {
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.left = '-9999px'
+    iframe.style.width = '210mm'
+    iframe.style.height = '297mm'
+    document.body.appendChild(iframe)
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
+    iframeDoc.open()
+    iframeDoc.write(html)
+    iframeDoc.close()
+
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow.print()
+        // print API 不返回 blob，返回 HTML blob 供用户自行打印/保存
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+        resolve(blob)
+      } catch (err) {
+        // 回退：返回 HTML 文件
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+        resolve(blob)
+      } finally {
+        setTimeout(() => document.body.removeChild(iframe), 1000)
+      }
+    }
   })
+}
 
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = style.pageMargin
-  const contentWidth = pageWidth - margin.left - margin.right
-  let yPos = margin.top
-
-  /**
-   * 检查是否需要换页
-   * @param {number} neededHeight - 需要的高度
-   */
-  function checkPageBreak(neededHeight) {
-    if (yPos + neededHeight > pageHeight - margin.bottom) {
-      doc.addPage()
-      yPos = margin.top
-    }
-  }
-
-  /**
-   * 写入文本（自动换行）
-   * @param {string} text - 文本内容
-   * @param {object} options - 选项
-   */
-  function writeText(text, options = {}) {
-    const fontSize = options.fontSize || style.bodySize
-    const lineHeight = fontSize * style.lineHeight
-    const indent = options.indent ? fontSize * 2 : 0
-
-    doc.setFontSize(fontSize)
-
-    // 按段落分割
-    const paragraphs = text.split(/\n+/).filter(p => p.trim())
-    for (const para of paragraphs) {
-      const trimmed = para.trim()
-      if (!trimmed) continue
-
-      checkPageBreak(lineHeight * 2)
-
-      // 计算自动换行
-      const lines = doc.splitTextToSize(trimmed, contentWidth - indent)
-
-      for (const line of lines) {
-        checkPageBreak(lineHeight)
-        doc.text(line, margin.left + indent, yPos)
-        yPos += lineHeight
-      }
-
-      yPos += fontSize * 0.5 // 段后间距
-    }
-  }
-
-  // ---- 封面页 ----
-  yPos = pageHeight / 3
-  doc.setFontSize(style.titleSize)
-  // jsPDF 默认字体不支持中文，使用 helvetica 作为回退
-  // 实际项目中应加载中文字体
-  doc.text(project.name || 'Untitled', pageWidth / 2, yPos, { align: 'center' })
-  yPos += style.titleSize * 2
-
-  if (project.author) {
-    doc.setFontSize(style.bodySize)
-    doc.text(project.author || '', pageWidth / 2, yPos, { align: 'center' })
-  }
-
-  // ---- 简介页 ----
-  if (project.description) {
-    doc.addPage()
-    yPos = margin.top
-    doc.setFontSize(style.headingSize)
-    doc.text('Introduction', margin.left, yPos)
-    yPos += style.headingSize * 2
-
-    writeText(project.description)
-  }
-
-  // ---- 章节内容 ----
-  for (let i = 0; i < chapters.length; i++) {
-    const chapter = chapters[i]
-
-    doc.addPage()
-    yPos = margin.top
-
-    // 章节标题
-    doc.setFontSize(style.headingSize)
-    const chapterTitle = chapter.title || `Chapter ${i + 1}`
-    doc.text(chapterTitle, pageWidth / 2, yPos, { align: 'center' })
-    yPos += style.headingSize * 2.5
-
-    // 章节摘要
-    if (chapter.summary) {
-      doc.setFontSize(style.bodySize - 1)
-      const summaryLines = doc.splitTextToSize(chapter.summary, contentWidth)
-      for (const line of summaryLines) {
-        checkPageBreak(style.bodySize * style.lineHeight)
-        doc.text(line, margin.left, yPos)
-        yPos += style.bodySize * style.lineHeight
-      }
-      yPos += style.bodySize
-    }
-
-    // 章节正文
-    if (chapter.content) {
-      writeText(chapter.content, {
-        indent: style.firstLineIndent
-      })
-    }
-  }
-
-  // 返回 Blob
-  const blob = doc.output('blob')
-  return blob
+/**
+ * HTML 转义
+ */
+function escapeHtml(text) {
+  if (!text) return ''
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 /**
@@ -772,21 +721,6 @@ function triggerDownload(blob, fileName) {
   document.body.removeChild(link)
   // 延迟释放 URL，确保下载完成
   setTimeout(() => URL.revokeObjectURL(url), 5000)
-}
-
-/**
- * HTML 转义
- * @param {string} str - 原始字符串
- * @returns {string} 转义后的字符串
- */
-function escapeHtml(str) {
-  if (!str) return ''
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
 }
 
 /**

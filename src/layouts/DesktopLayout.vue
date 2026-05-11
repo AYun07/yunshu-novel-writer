@@ -209,7 +209,7 @@
         @scroll="handleContentScroll"
       >
         <!-- 页面内容 -->
-        <slot />
+        <router-view />
       </div>
 
       <!-- 底部 -->

@@ -229,9 +229,9 @@
       "description": "一款专为小说创作者设计的智能写作工具，集成AI辅助创作、角色管理、世界观构建等功能。"
     },
     "publish": {
-      "provider": "generic",
-      "url": "https://yunshu.app/updates",
-      "channel": "latest"
+      "provider": "github",
+      "owner": "AYun07",
+      "repo": "yunshu-novel-writer"
     },
     "releaseInfo": {
       "releaseNotes": "版本更新说明"
@@ -266,9 +266,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/yunshu/yunshu.git"
+    "url": "https://github.com/AYun07/yunshu-novel-writer.git"
   },
   "bugs": {
-    "url": "https://github.com/yunshu/yunshu/issues"
+    "url": "https://github.com/AYun07/yunshu-novel-writer/issues"
   }
 }

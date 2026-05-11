@@ -6,7 +6,7 @@
       <MobileLayout />
     </template>
     <template v-else>
-      <router-view />
+      <DesktopLayout />
     </template>
 
     <!-- 全局同步状态提示 -->
