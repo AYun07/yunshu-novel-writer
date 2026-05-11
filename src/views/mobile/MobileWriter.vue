@@ -77,82 +77,79 @@
     </footer>
     
     <!-- 章节列表抽屉 -->
-    <van-popup
-      v-model:show="showChapterList"
-      position="right"
-      :style="{ width: '80%', height: '100%' }"
+    <el-drawer
+      v-model="showChapterList"
+      direction="rtl"
+      size="80%"
+      :show-close="false"
+      class="chapter-drawer-comp"
     >
-      <div class="chapter-drawer safe-area-all">
-        <div class="drawer-header">
-          <h3>章节列表</h3>
-          <button class="close-btn touch-target" @click="showChapterList = false">×</button>
+      <template #header>
+        <h3 style="margin:0;font-size:18px;">章节列表</h3>
+      </template>
+      <div class="chapter-list">
+        <div
+          v-for="(chapter, index) in chapters"
+          :key="chapter.id"
+          class="chapter-item list-item-mobile"
+          :class="{ active: currentChapterId === chapter.id }"
+          @click="selectChapter(chapter)"
+        >
+          <span class="chapter-number">第{{ index + 1 }}章</span>
+          <span class="chapter-name">{{ chapter.title }}</span>
+          <span class="chapter-words">{{ chapter.wordCount || 0 }}字</span>
         </div>
-        <div class="chapter-list">
-          <div
-            v-for="(chapter, index) in chapters"
-            :key="chapter.id"
-            class="chapter-item list-item-mobile"
-            :class="{ active: currentChapterId === chapter.id }"
-            @click="selectChapter(chapter)"
-          >
-            <span class="chapter-number">第{{ index + 1 }}章</span>
-            <span class="chapter-name">{{ chapter.title }}</span>
-            <span class="chapter-words">{{ chapter.wordCount || 0 }}字</span>
-          </div>
-        </div>
-        <button class="add-chapter-btn btn-mobile" @click="addNewChapter">
-          + 新建章节
-        </button>
       </div>
-    </van-popup>
+      <div style="padding:16px;">
+        <el-button type="primary" style="width:100%;" @click="addNewChapter">+ 新建章节</el-button>
+      </div>
+    </el-drawer>
     
     <!-- AI助手面板 -->
-    <van-popup
-      v-model:show="showAIAssistant"
-      position="bottom"
-      :style="{ height: '60%' }"
-      round
+    <el-drawer
+      v-model="showAIAssistant"
+      direction="btt"
+      size="60%"
+      :show-close="false"
+      class="ai-drawer-comp"
     >
-      <div class="ai-assistant-panel safe-area-bottom">
-        <div class="panel-header">
-          <h3>AI 写作助手</h3>
-          <button class="close-btn touch-target" @click="showAIAssistant = false">×</button>
-        </div>
-        <div class="ai-options">
-          <button class="ai-option-btn" @click="aiGenerate('continue')">
-            <span class="ai-icon">✨</span>
-            <span>续写</span>
-          </button>
-          <button class="ai-option-btn" @click="aiGenerate('expand')">
-            <span class="ai-icon">📝</span>
-            <span>扩写</span>
-          </button>
-          <button class="ai-option-btn" @click="aiGenerate('polish')">
-            <span class="ai-icon">✏️</span>
-            <span>润色</span>
-          </button>
-          <button class="ai-option-btn" @click="aiGenerate('dialog')">
-            <span class="ai-icon">💬</span>
-            <span>生成对话</span>
-          </button>
-          <button class="ai-option-btn" @click="aiGenerate('describe')">
-            <span class="ai-icon">🎨</span>
-            <span>场景描写</span>
-          </button>
-          <button class="ai-option-btn" @click="aiGenerate('character')">
-            <span class="ai-icon">👤</span>
-            <span>人物刻画</span>
-          </button>
-        </div>
-        <div class="ai-result" v-if="aiResult">
-          <div class="result-content">{{ aiResult }}</div>
-          <div class="result-actions">
-            <button class="action-btn" @click="applyAIResult">应用</button>
-            <button class="action-btn" @click="regenerateAI">重新生成</button>
-          </div>
+      <template #header>
+        <h3 style="margin:0;font-size:18px;">AI 写作助手</h3>
+      </template>
+      <div class="ai-options">
+        <button class="ai-option-btn" @click="aiGenerate('continue')">
+          <span class="ai-icon">✨</span>
+          <span>续写</span>
+        </button>
+        <button class="ai-option-btn" @click="aiGenerate('expand')">
+          <span class="ai-icon">📝</span>
+          <span>扩写</span>
+        </button>
+        <button class="ai-option-btn" @click="aiGenerate('polish')">
+          <span class="ai-icon">✏️</span>
+          <span>润色</span>
+        </button>
+        <button class="ai-option-btn" @click="aiGenerate('dialog')">
+          <span class="ai-icon">💬</span>
+          <span>生成对话</span>
+        </button>
+        <button class="ai-option-btn" @click="aiGenerate('describe')">
+          <span class="ai-icon">🎨</span>
+          <span>场景描写</span>
+        </button>
+        <button class="ai-option-btn" @click="aiGenerate('character')">
+          <span class="ai-icon">👤</span>
+          <span>人物刻画</span>
+        </button>
+      </div>
+      <div class="ai-result" v-if="aiResult">
+        <div class="result-content">{{ aiResult }}</div>
+        <div class="result-actions">
+          <button class="action-btn" @click="applyAIResult">应用</button>
+          <button class="action-btn" @click="regenerateAI">重新生成</button>
         </div>
       </div>
-    </van-popup>
+    </el-drawer>
     
     <!-- 自动保存提示 -->
     <transition name="fade">

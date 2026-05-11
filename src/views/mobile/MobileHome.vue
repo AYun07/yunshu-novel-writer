@@ -631,6 +631,19 @@ onMounted(() => {
   -ms-overflow-style: none;
   margin: 0 -16px;
   padding: 0 16px;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.stats-scroll::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 30px;
+  background: linear-gradient(to right, transparent, #f5f7fa);
+  pointer-events: none;
 }
 
 .stats-scroll::-webkit-scrollbar {

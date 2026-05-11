@@ -302,6 +302,7 @@ function showConflictDetail(conflict) {
 .sync-settings {
   min-height: 100vh;
   background: #f5f7fa;
+  padding-bottom: 100px; /* 避免被移动端底部导航遮挡 */
 }
 
 .header {
